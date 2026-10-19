@@ -809,7 +809,7 @@
     const list = state.filter ? state.workouts.filter(w => w.muscle_group === state.filter) : state.workouts;
     $('#workout-history-chart').innerHTML = workoutHistoryChart(state.workouts);
     $('#workout-list').innerHTML = list.length ? list.map(workoutItem).join('') : emptyHtml('🏃', 'Нет записей');
-    $('#workout-chips .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
+    $$('#workout-chips .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
   }
 
   function renderWeight() {
