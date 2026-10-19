@@ -505,10 +505,8 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- Библиотеки лежат в репозитории (папка vendor/), внешние CDN не нужны.
-     Если какая-то не загрузится, приложение всё равно работает: анимации просто отключатся. -->
-<!-- Supabase SDK: нужен для обращения к Edge Function -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Локальная библиотека Supabase: хранится в vendor/, поэтому CDN для Supabase не нужен. -->
+<script src="./vendor/supabase.js"></script>
 
 <!-- Встроенный код приложения: файл полностью автономен, кроме внешних SDK -->
 <script>
