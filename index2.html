@@ -98,6 +98,15 @@
   .nav-btn.active { color: var(--accent); background: rgba(56, 189, 248, .1); }
   .nav-btn.active .ico { transform: translateY(-2px) scale(1.12); }
 
+  .workout-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .workout-chart .bar { transform-origin: center bottom; animation: barRise .7s cubic-bezier(.2,.8,.2,1) both; }
+  .workout-chart .bar-label { fill: var(--muted); font-size: 10px; }
+  .workout-chart .chart-total { fill: var(--text); font-size: 13px; font-weight: 700; }
+  @keyframes barRise { from { opacity: .2; transform: scaleY(.08); } to { opacity: 1; transform: scaleY(1); } }
+  .history-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; color:var(--muted); font-size:12px; }
+  .history-summary strong { color:var(--text); font-size:20px; letter-spacing:-.5px; }
+  @media (prefers-reduced-motion: reduce) { .workout-chart .bar { animation:none; } }
+
   /* ================= ПАНЕЛИ ================= */
   .panel { display: none; }
   .panel.active { display: block; }
@@ -354,7 +363,15 @@
             <div class="eyebrow">Новый подход</div>
             <div class="card">
               <form id="workout-form">
-                <div class="field"><label>Упражнение</label><input name="exercise" placeholder="Подъём на бицепс" required maxlength="80"></div>
+                <div class="field"><label for="exercise-select">Упражнение</label>
+                  <select name="exercise" id="exercise-select" required>
+                    <option value="Жим лёжа">Жим лёжа</option>
+                    <option value="Жим гантелей лёжа">Жим гантелей лёжа</option>
+                    <option value="Отжимания">Отжимания</option>
+                    <option value="Другое">✏️ Другое упражнение…</option>
+                  </select>
+                </div>
+                <div class="field hidden" id="custom-exercise-wrap"><label for="custom-exercise">Название упражнения</label><input id="custom-exercise" type="text" maxlength="80" placeholder="Введи название"></div>
                 <div class="field"><label>Группа мышц</label>
                   <select name="muscle_group" required>
                     <option value="chest">🫁 Грудь</option>
@@ -376,7 +393,9 @@
           </div>
 
           <div class="reveal">
-            <div class="eyebrow">История</div>
+            <div class="eyebrow">Активность за 14 дней</div>
+            <div class="card chart workout-chart" id="workout-history-chart"></div>
+            <div class="eyebrow">История упражнений</div>
             <div class="chips" id="workout-chips">
               <button class="chip active" data-filter="" type="button">Все</button>
               <button class="chip" data-filter="chest" type="button">Грудь</button>
@@ -671,6 +690,69 @@
     </svg>`;
   }
 
+  // ---------- Каталог упражнений ----------
+  const EXERCISES = {
+    chest: ['Жим лёжа', 'Жим гантелей лёжа', 'Жим на наклонной скамье', 'Разводка гантелей', 'Сведение рук в тренажёре', 'Отжимания', 'Отжимания на брусьях'],
+    back: ['Подтягивания', 'Тяга верхнего блока', 'Тяга горизонтального блока', 'Тяга штанги в наклоне', 'Тяга гантели одной рукой', 'Гиперэкстензия', 'Становая тяга'],
+    shoulders: ['Жим штанги стоя', 'Жим гантелей сидя', 'Махи гантелями в стороны', 'Махи гантелями перед собой', 'Разведение в наклоне', 'Шраги'],
+    biceps: ['Подъём штанги на бицепс', 'Подъём гантелей на бицепс', 'Молотки', 'Сгибание рук на скамье Скотта', 'Сгибание рук в блоке'],
+    legs: ['Приседания со штангой', 'Жим ногами', 'Разгибание ног', 'Сгибание ног', 'Румынская тяга', 'Выпады', 'Подъём на носки'],
+    abs: ['Скручивания', 'Подъём ног', 'Планка', 'Велосипед', 'Скручивания на блоке']
+  };
+  function updateExerciseOptions() {
+    const group = $('#workout-form [name="muscle_group"]').value;
+    const select = $('#exercise-select');
+    const previous = select.value;
+    const options = EXERCISES[group] || [];
+    select.innerHTML = options.map(name => '<option value="' + esc(name) + '">' + esc(name) + '</option>').join('') +
+      '<option value="Другое">✏️ Другое упражнение…</option>';
+    if (options.includes(previous) || previous === 'Другое') select.value = previous;
+    $('#custom-exercise-wrap').classList.toggle('hidden', select.value !== 'Другое');
+    $('#custom-exercise').required = select.value === 'Другое';
+  }
+  $('#workout-form [name="muscle_group"]').addEventListener('change', updateExerciseOptions);
+  $('#exercise-select').addEventListener('change', () => {
+    const custom = $('#exercise-select').value === 'Другое';
+    $('#custom-exercise-wrap').classList.toggle('hidden', !custom);
+    $('#custom-exercise').required = custom;
+    if (custom) $('#custom-exercise').focus();
+  });
+  updateExerciseOptions();
+
+  function workoutHistoryChart(workouts) {
+    const now = new Date();
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      const key = dayKey(d);
+      days.push({ date: d, key, label: d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', ''), count: 0 });
+    }
+    const byKey = new Map(days.map(d => [d.key, d]));
+    workouts.forEach(w => {
+      const d = new Date(w.logged_at);
+      const key = dayKey(d);
+      if (byKey.has(key)) byKey.get(key).count++;
+    });
+    const total = days.reduce((n, d) => n + d.count, 0);
+    const active = days.filter(d => d.count > 0).length;
+    if (!total) return '<div class="empty"><b>📊</b>Добавь первую тренировку — здесь появится график активности</div>';
+    const W = 600, H = 190, left = 18, right = 12, top = 28, bottom = 34;
+    const plotH = H - top - bottom, gap = 7, barW = (W - left - right - gap * 13) / 14;
+    const max = Math.max(1, ...days.map(d => d.count));
+    const bars = days.map((d, i) => {
+      const bh = d.count ? Math.max(4, d.count / max * plotH) : 2;
+      const x = left + i * (barW + gap), y = top + plotH - bh;
+      const label = i % 2 === 0 || i === 13 ? d.label : '';
+      return '<g><rect class="bar" style="animation-delay:' + (i * 28) + 'ms" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="4" fill="' + (d.count ? '#38bdf8' : 'rgba(148,163,184,.18)') + '"><title>' + esc(d.label) + ': ' + d.count + ' записей</title></rect>' +
+        (d.count ? '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (y - 5).toFixed(1) + '" text-anchor="middle" class="bar-label">' + d.count + '</text>' : '') +
+        (label ? '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle" class="bar-label">' + esc(label) + '</text>' : '') + '</g>';
+    }).join('');
+    return '<div class="history-summary"><span>Тренировочные записи за 14 дней</span><span><strong>' + total + '</strong> записей · ' + active + ' активных дней</span></div>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Активность тренировок за последние 14 дней">' + bars + '</svg>';
+  }
+
   // ---------- Отрисовка ----------
   function workoutItem(w) {
     const bits = [];
@@ -725,8 +807,9 @@
 
   function renderWorkouts() {
     const list = state.filter ? state.workouts.filter(w => w.muscle_group === state.filter) : state.workouts;
+    $('#workout-history-chart').innerHTML = workoutHistoryChart(state.workouts);
     $('#workout-list').innerHTML = list.length ? list.map(workoutItem).join('') : emptyHtml('🏃', 'Нет записей');
-    $$('#workout-chips .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
+    $('#workout-chips .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
   }
 
   function renderWeight() {
@@ -800,12 +883,12 @@
     await withBusy(f.querySelector('button[type=submit]'), async () => {
       try {
         await api('add_workout', {
-          exercise: String(fd.get('exercise')).trim(),
+          exercise: String(fd.get('exercise') === 'Другое' ? fd.get('custom-exercise') : fd.get('exercise')).trim(),
           muscle_group: fd.get('muscle_group'),
           weight_kg: num(fd.get('weight_kg')), reps: num(fd.get('reps')), sets: num(fd.get('sets')),
         });
         const keep = f.muscle_group.value;
-        f.reset(); f.muscle_group.value = keep;
+        f.reset(); f.muscle_group.value = keep; updateExerciseOptions();
         state.workouts = (await api('get_workouts', {})).workouts || [];
         renderWorkouts();
         toast('Подход записан ✅', 'ok');
