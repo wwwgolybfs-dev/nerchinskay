@@ -3,508 +3,506 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
-<title>Trek Fit</title>
+<meta name="theme-color" content="#080b12">
+<meta name="color-scheme" content="dark">
+<title>Trek Fit — дневник тренировок</title>
 
-<!-- Telegram Mini App SDK (должен грузиться только с telegram.org) -->
+<!-- Telegram Mini App SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- Стили. При обновлении файла меняй число после ?v= , чтобы Telegram не показывал старый кэш -->
-<style>
-
-  :root {
-    color-scheme: dark;
-    --bg: #0b1220;
-    --bg-2: #0f1729;
-    --surface: #131c30;
-    --surface-2: #1a2540;
-    --line: rgba(148, 163, 184, .16);
-    --text: #eef2f8;
-    --muted: #93a1b8;
-    --accent: #38bdf8;
-    --accent-2: #6366f1;
-    --good: #4ade80;
-    --bad: #f87171;
-    --radius: 16px;
-    --sidebar-w: 248px;
-    --safe-b: env(safe-area-inset-bottom, 0px);
-    --safe-t: env(safe-area-inset-top, 0px);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
-    background:
-      radial-gradient(900px 500px at 85% -10%, rgba(99, 102, 241, .18), transparent 60%),
-      radial-gradient(700px 400px at -10% 10%, rgba(56, 189, 248, .14), transparent 60%),
-      var(--bg);
-    background-attachment: fixed;
-    color: var(--text);
-    min-height: 100vh;
-    min-height: 100dvh;
-    line-height: 1.4;
-    -webkit-font-smoothing: antialiased;
-  }
-  button { font-family: inherit; }
-  .hidden { display: none !important; }
-
-  /* ================= ОБОЛОЧКА ================= */
-  .shell { min-height: 100dvh; }
-
-  /* Верхняя панель (телефон) */
-  .topbar {
-    position: sticky; top: 0; z-index: 50;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: calc(12px + var(--safe-t)) 16px 12px;
-    background: rgba(11, 18, 32, .8);
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--line);
-  }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; letter-spacing: -.2px; }
-  .brand-logo {
-    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 18px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    box-shadow: 0 6px 18px rgba(56, 189, 248, .3);
-  }
-  .user-chip { font-size: 13px; color: var(--muted); max-width: 45vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-  /* Боковая панель (компьютер) */
-  .sidebar { display: none; }
-
-  /* Основная область */
-  .main { padding-bottom: calc(92px + var(--safe-b)); }
-  .container { width: 100%; max-width: 640px; margin: 0 auto; padding: 18px 16px; }
-  .page-head { display: none; }
-
-  /* Нижняя навигация (телефон) */
-  .bottomnav {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
-    display: grid; grid-template-columns: repeat(5, 1fr);
-    padding: 6px 6px calc(6px + var(--safe-b));
-    background: rgba(11, 18, 32, .88);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid var(--line);
-  }
-  .nav-btn {
-    appearance: none; border: 0; background: transparent; color: var(--muted);
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 8px 2px; border-radius: 12px; cursor: pointer;
-    font-size: 11px; font-weight: 600; position: relative;
-    transition: color .2s, background .2s, transform .15s;
-  }
-  .nav-btn .ico { font-size: 21px; line-height: 1; transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
-  .nav-btn:active { transform: scale(.94); }
-  .nav-btn.active { color: var(--accent); background: rgba(56, 189, 248, .1); }
-  .nav-btn.active .ico { transform: translateY(-2px) scale(1.12); }
-
-  .workout-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
-  .workout-chart .bar { transform-origin: center bottom; animation: barRise .7s cubic-bezier(.2,.8,.2,1) both; }
-  .workout-chart .bar-label { fill: var(--muted); font-size: 10px; }
-  .workout-chart .chart-total { fill: var(--text); font-size: 13px; font-weight: 700; }
-  @keyframes barRise { from { opacity: .2; transform: scaleY(.08); } to { opacity: 1; transform: scaleY(1); } }
-  .history-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; color:var(--muted); font-size:12px; }
-  .history-summary strong { color:var(--text); font-size:20px; letter-spacing:-.5px; }
-  @media (prefers-reduced-motion: reduce) { .workout-chart .bar { animation:none; } }
-
-  /* ================= ПАНЕЛИ ================= */
-  .panel { display: none; }
-  .panel.active { display: block; }
-
-  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
-  .eyebrow:first-child { margin-top: 0; }
-
-  .card {
-    background: linear-gradient(180deg, var(--surface), var(--bg-2));
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 14px;
-  }
-  .card.glow { border-color: rgba(56, 189, 248, .25); background: linear-gradient(135deg, rgba(56, 189, 248, .12), rgba(99, 102, 241, .1)), var(--surface); }
-  .card h3 { font-size: 15px; font-weight: 700; }
-  .card .sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-
-  .hero h2 { font-size: 22px; letter-spacing: -.3px; margin-bottom: 4px; }
-  .hero p { color: var(--muted); font-size: 14px; }
-
-  /* Статистика */
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
-  .stat .lbl { font-size: 11.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-  .stat .val { font-size: 26px; font-weight: 800; margin-top: 6px; letter-spacing: -.5px;
-    background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-  .stat .val small { font-size: 14px; font-weight: 600; -webkit-text-fill-color: var(--muted); color: var(--muted); }
-  .stat .delta { font-size: 12px; margin-top: 2px; color: var(--muted); }
-  .delta.up { color: var(--bad); } .delta.down { color: var(--good); }
-
-  /* Формы */
-  form { display: grid; gap: 12px; }
-  .field { display: grid; gap: 6px; }
-  .field label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  input, select {
-    width: 100%; padding: 13px 14px; border-radius: 12px;
-    border: 1px solid var(--line); background: rgba(8, 13, 24, .6); color: var(--text);
-    font-size: 16px; font-family: inherit; outline: none; transition: border-color .2s, box-shadow .2s;
-    appearance: none; -webkit-appearance: none;
-  }
-  select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%2393a1b8' stroke-width='2'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
-  }
-  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56, 189, 248, .15); }
-  input::placeholder { color: #5d6b84; }
-
-  .btn {
-    appearance: none; border: 0; cursor: pointer; width: 100%;
-    padding: 14px 16px; border-radius: 12px; font-size: 15px; font-weight: 700;
-    color: #04121f; background: linear-gradient(135deg, var(--accent), #7dd3fc);
-    box-shadow: 0 8px 22px rgba(56, 189, 248, .25);
-    transition: transform .15s, box-shadow .2s, opacity .2s;
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .btn:hover { box-shadow: 0 10px 28px rgba(56, 189, 248, .35); }
-  .btn:active { transform: scale(.98); }
-  .btn:disabled { opacity: .55; cursor: not-allowed; }
-  .btn.ghost { background: var(--surface-2); color: var(--text); box-shadow: none; border: 1px solid var(--line); }
-  .btn.danger { background: rgba(248, 113, 113, .12); color: var(--bad); box-shadow: none; border: 1px solid rgba(248, 113, 113, .3); }
-  .btn + .btn { margin-top: 10px; }
-
-  /* Фильтры */
-  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; margin-bottom: 4px; }
-  .chips::-webkit-scrollbar { display: none; }
-  .chip {
-    appearance: none; flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; cursor: pointer;
-    border: 1px solid var(--line); background: transparent; color: var(--muted);
-    font-size: 13px; font-weight: 600; transition: all .2s;
-  }
-  .chip.active { background: var(--accent); border-color: var(--accent); color: #04121f; }
-
-  /* Списки */
-  .list { display: grid; gap: 10px; }
-  .item {
-    display: flex; justify-content: space-between; gap: 12px; align-items: center;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px;
-  }
-  .item-title { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
-  .item-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
-  .item-date { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: rgba(56, 189, 248, .14); color: var(--accent); }
-  .empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: 14px; border: 1px dashed var(--line); border-radius: 14px; }
-  .empty b { display: block; font-size: 30px; margin-bottom: 6px; }
-
-  /* График */
-  .chart svg { width: 100%; height: auto; display: block; }
-  .chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
-
-  /* Калькуляторы */
-  .calc-grid { display: grid; gap: 14px; }
-  .calc .head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-  .calc .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--surface-2); }
-  .calc .big { font-size: 28px; font-weight: 800; letter-spacing: -.5px; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-  .calc .note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-
-  .code-box { text-align: center; font-size: 26px; font-weight: 800; letter-spacing: 3px; color: var(--accent); padding: 16px; margin: 10px 0 14px; border-radius: 12px; background: rgba(8, 13, 24, .6); border: 1px dashed rgba(56, 189, 248, .4); user-select: all; }
-
-  /* Вход */
-  .auth { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: var(--bg); }
-  .auth-box { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 30px 24px; text-align: center; box-shadow: 0 30px 80px rgba(0, 0, 0, .5); }
-  .auth-box .brand-logo { width: 60px; height: 60px; font-size: 30px; margin: 0 auto 16px; border-radius: 18px; }
-  .auth-box h2 { font-size: 22px; margin-bottom: 6px; }
-  .auth-box p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
-  .auth-box input { text-align: center; font-size: 20px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
-
-  /* Уведомление */
-  .toast {
-    position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translate(-50%, 20px);
-    background: var(--surface-2); color: var(--text); border: 1px solid var(--line);
-    padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 600;
-    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 300;
-    max-width: calc(100vw - 32px); text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
-  }
-  .toast.show { opacity: 1; transform: translate(-50%, 0); }
-  .toast.ok { border-color: rgba(74, 222, 128, .5); }
-  .toast.err { border-color: rgba(248, 113, 113, .6); }
-
-  .spinner { width: 16px; height: 16px; border: 2px solid rgba(4, 18, 31, .3); border-top-color: #04121f; border-radius: 50%; animation: spin .7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ================= ПЛАНШЕТ ================= */
-  @media (min-width: 640px) {
-    .container { max-width: 760px; padding: 24px; }
-    .stats { grid-template-columns: repeat(4, 1fr); }
-    .calc-grid { grid-template-columns: 1fr 1fr; }
-  }
-
-  /* ================= КОМПЬЮТЕР ================= */
-  @media (min-width: 960px) {
-    .topbar, .bottomnav { display: none; }
-
-    .sidebar {
-      display: flex; flex-direction: column; gap: 6px;
-      position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
-      padding: 24px 16px; z-index: 40;
-      background: rgba(11, 18, 32, .75); backdrop-filter: blur(14px);
-      border-right: 1px solid var(--line);
-    }
-    .sidebar .brand { padding: 4px 8px 22px; font-size: 20px; }
-    .sidebar .nav-btn {
-      flex-direction: row; justify-content: flex-start; gap: 12px;
-      padding: 12px 14px; font-size: 14.5px; border-radius: 12px;
-    }
-    .sidebar .nav-btn:hover { background: rgba(148, 163, 184, .08); color: var(--text); }
-    .sidebar .nav-btn.active { background: rgba(56, 189, 248, .12); color: var(--accent); }
-    .sidebar .nav-btn .ico { font-size: 19px; }
-    .sidebar .nav-btn.active .ico { transform: none; }
-    .sidebar-foot { margin-top: auto; padding: 12px 8px 0; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
-
-    .main { margin-left: var(--sidebar-w); padding-bottom: 40px; }
-    .container { max-width: 1040px; padding: 34px 40px; }
-    .page-head { display: block; margin-bottom: 22px; }
-    .page-head h1 { font-size: 28px; letter-spacing: -.5px; }
-    .page-head p { color: var(--muted); font-size: 14px; margin-top: 4px; }
-
-    .split { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
-    .split > .sticky { position: sticky; top: 24px; }
-    .split.even { grid-template-columns: 1fr 1fr; }
-    .calc-grid { grid-template-columns: repeat(2, 1fr); }
-    .toast { bottom: 28px; }
-    .card:hover, .stat:hover { border-color: rgba(56, 189, 248, .3); }
-    .item { transition: transform .2s, border-color .2s; }
-    .item:hover { transform: translateX(3px); border-color: rgba(56, 189, 248, .3); }
-  }
-
-  @media (min-width: 1280px) {
-    .container { max-width: 1160px; }
-  }
-
-  @media (max-width: 360px) {
-    .row { grid-template-columns: 1fr; }
-    .stat .val { font-size: 22px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-  }
-
-</style>
+<!-- Единственный источник стилей. При обновлении style.css меняй ?v= , чтобы Telegram сбросил кэш -->
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
-<!-- ============ ВХОД (только для браузера) ============ -->
+<!-- ================= ИКОНКИ (Lucide-подобные, 24×24, stroke) ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.6 12 3l9 7.6V20a1.4 1.4 0 0 1-1.4 1.4H15v-6.6H9v6.6H4.4A1.4 1.4 0 0 1 3 20z"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M3.5 9.5v5M6.5 7.5v9M17.5 7.5v9M20.5 9.5v5M6.5 12h11"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M8 15a4 4 0 0 1 8 0M12 11.5l2-2.5"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8 8h8M8 12h2M12 12h2M16 12h.01M8 16h2M12 16h2M16 16h.01"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3s5 4.4 5 9a5 5 0 0 1-10 0c0-1.8.8-3.4 1.8-4.6C9.7 9 12 8 12 3Z"/></symbol>
+    <symbol id="i-trend-up" viewBox="0 0 24 24"><path d="M3.5 16.5 9 11l4 4 7.5-7.5"/><path d="M15.5 7.5H20v4.5"/></symbol>
+    <symbol id="i-trend-down" viewBox="0 0 24 24"><path d="M3.5 7.5 9 13l4-4 7.5 7.5"/><path d="M15.5 16.5H20V12"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M3.5 10.5h17"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 5.5H4.5V7a3.5 3.5 0 0 0 3.5 3.5M17 5.5h2.5V7A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3.5M8.5 20.5h7"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H14"/><path d="M17 8.5 20.5 12 17 15.5M10 12h10.5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 5.5v-1a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v10m0 0 4-4m-4 4-4-4"/><path d="M4.5 18.5h15"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4.5V10h-5.5"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></symbol>
+    <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 3.5c3 3.6 5.5 6.6 5.5 9.6a5.5 5.5 0 0 1-11 0c0-3 2.5-6 5.5-9.6Z"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 5 5 10-11"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></symbol>
+  </defs>
+</svg>
+
+<!-- ================= ВХОД (браузер вне Telegram) ================= -->
 <div class="auth hidden" id="auth">
   <div class="auth-box">
-    <div class="brand-logo">🏋️</div>
-    <h2>Trek Fit</h2>
-    <p>Введи код синхронизации из Telegram-приложения (раздел «Профиль»)</p>
-    <input id="sync-input" placeholder="X7F9-A2B4" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <button class="btn" id="sync-btn" type="button">Войти</button>
+    <div class="brand-mark"><svg><use href="#i-dumbbell"/></svg></div>
+    <h2>Вход в Trek Fit</h2>
+    <p>Введи код синхронизации из раздела «Профиль» в Telegram-приложении</p>
+    <input id="sync-input" placeholder="XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="9" inputmode="text" aria-label="Код синхронизации">
+    <button class="btn" id="sync-btn" type="button">
+      <svg><use href="#i-chevron"/></svg>Войти
+    </button>
   </div>
 </div>
 
 <div class="shell hidden" id="shell">
 
-  <!-- Боковая панель: компьютер -->
-  <aside class="sidebar" id="sidebar">
-    <div class="brand"><div class="brand-logo">🏋️</div>Trek Fit</div>
-    <button class="nav-btn active" data-nav="home" type="button"><span class="ico">🏠</span><span>Главная</span></button>
-    <button class="nav-btn" data-nav="workouts" type="button"><span class="ico">💪</span><span>Тренировки</span></button>
-    <button class="nav-btn" data-nav="weight" type="button"><span class="ico">⚖️</span><span>Вес и жир</span></button>
-    <button class="nav-btn" data-nav="calc" type="button"><span class="ico">🧮</span><span>Калькуляторы</span></button>
-    <button class="nav-btn" data-nav="profile" type="button"><span class="ico">👤</span><span>Профиль</span></button>
-    <div class="sidebar-foot" id="sidebar-user">—</div>
+  <!-- ================= САЙДБАР (компьютер) ================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><svg><use href="#i-dumbbell"/></svg></div>
+      <div class="brand-name">Trek<span>Fit</span></div>
+    </div>
+
+    <button class="nav-btn active" data-nav="home" type="button"><svg class="ic"><use href="#i-home"/></svg><span>Обзор</span></button>
+    <button class="nav-btn" data-nav="workouts" type="button"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Тренировки</span></button>
+    <button class="nav-btn" data-nav="weight" type="button"><svg class="ic"><use href="#i-scale"/></svg><span>Вес и состав</span></button>
+    <button class="nav-btn" data-nav="calc" type="button"><svg class="ic"><use href="#i-calc"/></svg><span>Расчёты</span></button>
+    <button class="nav-btn" data-nav="profile" type="button"><svg class="ic"><use href="#i-user"/></svg><span>Профиль</span></button>
+
+    <div class="sidebar-foot">
+      <div class="user-line">
+        <div class="avatar" id="side-avatar">?</div>
+        <div class="user-name" id="sidebar-user">—</div>
+      </div>
+      <div class="session-meta" id="side-streak">—</div>
+    </div>
   </aside>
 
-  <!-- Верхняя панель: телефон -->
+  <!-- ================= ТОПБАР (телефон) ================= -->
   <header class="topbar">
-    <div class="brand"><div class="brand-logo">🏋️</div>Trek Fit</div>
-    <div class="user-chip" id="topbar-user">—</div>
+    <div class="brand">
+      <div class="brand-mark"><svg><use href="#i-dumbbell"/></svg></div>
+      <div class="brand-name">Trek<span>Fit</span></div>
+    </div>
+    <div class="topbar-right">
+      <span class="tag" id="top-streak"><svg style="width:12px;height:12px"><use href="#i-flame"/></svg><span>0</span></span>
+      <div class="avatar" id="top-avatar">?</div>
+    </div>
   </header>
 
   <main class="main">
     <div class="container">
 
       <div class="page-head">
-        <h1 id="page-title">Главная</h1>
-        <p id="page-sub">Твой дневник тренировок</p>
+        <div>
+          <h1 id="page-title">Обзор</h1>
+          <p id="page-sub">Твой прогресс за последние недели</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn sm ghost" data-goto="workouts" type="button"><svg><use href="#i-plus"/></svg>Подход</button>
+          <button class="btn sm" data-goto="weight" type="button"><svg><use href="#i-scale"/></svg>Записать вес</button>
+        </div>
       </div>
 
-      <!-- ===== ГЛАВНАЯ ===== -->
+      <!-- ================================================================
+           ОБЗОР
+           ================================================================ -->
       <section class="panel active" id="panel-home">
-        <div class="card glow hero reveal">
-          <h2 id="hero-title">Привет!</h2>
-          <p id="hero-text">Давай посмотрим на твой прогресс.</p>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi-label"><svg><use href="#i-scale"/></svg>Вес</div>
+            <div class="kpi-value num" id="st-weight">—</div>
+            <div class="kpi-foot" id="st-weight-delta">&nbsp;</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label"><svg><use href="#i-calendar"/></svg>За 7 дней</div>
+            <div class="kpi-value num" id="st-week">—</div>
+            <div class="kpi-foot">тренировочных дней</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label"><svg><use href="#i-flame"/></svg>Серия</div>
+            <div class="kpi-value num" id="st-streak">—</div>
+            <div class="kpi-foot">дней подряд</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label"><svg><use href="#i-target"/></svg>Калории</div>
+            <div class="kpi-value num" id="st-kcal">—</div>
+            <div class="kpi-foot" id="st-kcal-note">цель на день</div>
+          </div>
         </div>
 
-        <div class="stats reveal">
-          <div class="stat"><div class="lbl">Текущий вес</div><div class="val" id="st-weight">—</div><div class="delta" id="st-weight-delta">&nbsp;</div></div>
-          <div class="stat"><div class="lbl">За 7 дней</div><div class="val" id="st-week">—</div><div class="delta">тренировок</div></div>
-          <div class="stat"><div class="lbl">Серия</div><div class="val" id="st-streak">—</div><div class="delta">дней подряд</div></div>
-          <div class="stat"><div class="lbl">Норма калорий</div><div class="val" id="st-kcal">—</div><div class="delta">ккал / день</div></div>
+        <div class="eyebrow">Сегодня<span class="link" id="today-date">—</span></div>
+        <div class="card flat">
+          <div class="card-head" style="margin-bottom:8px">
+            <div>
+              <h3 id="today-title">Тренировки пока нет</h3>
+              <div class="sub" id="today-sub">Запиши первый подход — начнём считать объём</div>
+            </div>
+            <span class="row-badge" id="today-sets">0</span>
+          </div>
+          <div class="grid-2" style="gap:8px">
+            <button class="btn sm ghost" data-goto="workouts" type="button"><svg><use href="#i-plus"/></svg>Добавить подход</button>
+            <button class="btn sm ghost" data-goto="weight" type="button"><svg><use href="#i-scale"/></svg>Добавить вес</button>
+          </div>
         </div>
 
-        <div class="split even">
-          <div class="reveal">
-            <div class="eyebrow">Динамика веса</div>
-            <div class="card chart" id="home-chart"></div>
-          </div>
-          <div class="reveal">
-            <div class="eyebrow">Последние тренировки</div>
-            <div class="list" id="home-workouts"></div>
+        <div class="eyebrow">Динамика веса
+          <span class="segmented" id="home-range">
+            <button data-range="30" class="active" type="button">30 дн</button>
+            <button data-range="90" type="button">90 дн</button>
+            <button data-range="all" type="button">Всё</button>
+          </span>
+        </div>
+        <div class="card">
+          <div class="chart-box" id="home-chart-wrap"><canvas id="home-chart" role="img" aria-label="График веса"></canvas></div>
+          <div class="chart-legend">
+            <span><i style="background:#2dd4bf"></i>Вес</span>
+            <span><i style="background:#64748b"></i>Среднее за 7 записей</span>
           </div>
         </div>
+
+        <div class="grid-2" style="margin-top:12px">
+          <div>
+            <div class="eyebrow">Объём по неделям</div>
+            <div class="card">
+              <div class="chart-box"><canvas id="volume-chart" role="img" aria-label="Объём по неделям"></canvas></div>
+              <div class="chart-legend"><span><i style="background:#6366f1"></i>Тоннаж, кг</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="eyebrow">Баланс мышц · 30 дней</div>
+            <div class="card">
+              <div class="balance" id="muscle-balance"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="eyebrow">Календарь активности
+          <span class="link" data-goto="workouts" role="button" tabindex="0">Все тренировки</span>
+        </div>
+        <div class="card">
+          <div class="heatmap" id="heatmap" aria-label="Активность за 12 недель"></div>
+          <div class="heatmap-legend">
+            <span>меньше</span>
+            <span class="heat"></span><span class="heat l1"></span><span class="heat l2"></span><span class="heat l3"></span><span class="heat l4"></span>
+            <span>больше</span>
+          </div>
+        </div>
+
+        <div class="eyebrow">Последние тренировки</div>
+        <div id="home-sessions"></div>
       </section>
 
-      <!-- ===== ТРЕНИРОВКИ ===== -->
+      <!-- ================================================================
+           ТРЕНИРОВКИ
+           ================================================================ -->
       <section class="panel" id="panel-workouts">
         <div class="split">
-          <div class="sticky reveal">
-            <div class="eyebrow">Новый подход</div>
+          <div class="sticky">
+            <div class="eyebrow">Записать подход</div>
             <div class="card">
-              <form id="workout-form">
-                <div class="field"><label for="exercise-select">Упражнение</label>
-                  <select name="exercise" id="exercise-select" required>
-                    <option value="Жим лёжа">Жим лёжа</option>
-                    <option value="Жим гантелей лёжа">Жим гантелей лёжа</option>
-                    <option value="Отжимания">Отжимания</option>
-                    <option value="Другое">✏️ Другое упражнение…</option>
+              <form id="workout-form" novalidate>
+                <div class="field">
+                  <label for="exercise-select">Упражнение</label>
+                  <select id="exercise-select" name="exercise" required></select>
+                </div>
+
+                <div class="field hidden" id="custom-wrap">
+                  <label for="custom-exercise">Своё название</label>
+                  <input id="custom-exercise" name="custom-exercise" type="text" maxlength="60" placeholder="Например, тяга Т-грифа" autocomplete="off">
+                </div>
+
+                <div class="field hidden" id="group-wrap">
+                  <label for="group-select">Группа мышц</label>
+                  <select id="group-select" name="muscle_group">
+                    <option value="chest">Грудь</option>
+                    <option value="back">Спина</option>
+                    <option value="shoulders">Плечи</option>
+                    <option value="biceps">Бицепс</option>
+                    <option value="triceps">Трицепс</option>
+                    <option value="legs">Ноги</option>
+                    <option value="abs">Пресс</option>
+                    <option value="cardio">Кардио</option>
                   </select>
                 </div>
-                <div class="field hidden" id="custom-exercise-wrap"><label for="custom-exercise">Название упражнения</label><input id="custom-exercise" name="custom-exercise" type="text" maxlength="80" placeholder="Введи название"></div>
-                <div class="field"><label>Группа мышц</label>
-                  <select name="muscle_group" required>
-                    <option value="chest">🫁 Грудь</option>
-                    <option value="back">🔙 Спина</option>
-                    <option value="shoulders">🏔 Плечи</option>
-                    <option value="biceps">💪 Бицепс</option>
-                    <option value="legs">🦵 Ноги</option>
-                    <option value="abs">🎯 Пресс</option>
-                  </select>
-                </div>
+
                 <div class="row">
-                  <div class="field"><label>Вес, кг</label><input name="weight_kg" type="number" step="0.5" min="0" inputmode="decimal" placeholder="20"></div>
-                  <div class="field"><label>Повторы</label><input name="reps" type="number" min="0" inputmode="numeric" placeholder="10"></div>
+                  <div class="field">
+                    <label for="w-weight">Вес, кг</label>
+                    <div class="stepper">
+                      <button type="button" data-step="-2.5" data-for="w-weight" aria-label="Уменьшить вес"><svg style="width:14px;height:14px"><use href="#i-minus"/></svg></button>
+                      <input id="w-weight" name="weight_kg" type="number" inputmode="decimal" step="0.5" min="0" max="600" placeholder="0">
+                      <button type="button" data-step="2.5" data-for="w-weight" aria-label="Увеличить вес"><svg style="width:14px;height:14px"><use href="#i-plus"/></svg></button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="w-reps">Повторы</label>
+                    <div class="stepper">
+                      <button type="button" data-step="-1" data-for="w-reps" aria-label="Меньше повторов"><svg style="width:14px;height:14px"><use href="#i-minus"/></svg></button>
+                      <input id="w-reps" name="reps" type="number" inputmode="numeric" step="1" min="0" max="500" placeholder="10">
+                      <button type="button" data-step="1" data-for="w-reps" aria-label="Больше повторов"><svg style="width:14px;height:14px"><use href="#i-plus"/></svg></button>
+                    </div>
+                  </div>
                 </div>
-                <div class="field"><label>Подходы</label><input name="sets" type="number" min="0" inputmode="numeric" placeholder="3"></div>
-                <button class="btn" type="submit">➕ Добавить</button>
+
+                <div class="field">
+                  <label for="w-sets">Подходы</label>
+                  <div class="stepper">
+                    <button type="button" data-step="-1" data-for="w-sets" aria-label="Меньше подходов"><svg style="width:14px;height:14px"><use href="#i-minus"/></svg></button>
+                    <input id="w-sets" name="sets" type="number" inputmode="numeric" step="1" min="1" max="30" value="3">
+                    <button type="button" data-step="1" data-for="w-sets" aria-label="Больше подходов"><svg style="width:14px;height:14px"><use href="#i-plus"/></svg></button>
+                  </div>
+                </div>
+
+                <div class="sub" id="form-hint">—</div>
+                <button class="btn" type="submit"><svg><use href="#i-plus"/></svg>Записать подход</button>
               </form>
             </div>
           </div>
 
-          <div class="reveal">
-            <div class="eyebrow">Активность за 14 дней</div>
-            <div class="card chart workout-chart" id="workout-history-chart"></div>
-            <div class="eyebrow">История упражнений</div>
+          <div>
+            <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+              <div class="kpi">
+                <div class="kpi-label">Записей</div>
+                <div class="kpi-value num" id="ws-count">—</div>
+                <div class="kpi-foot">за 30 дней</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Подходов</div>
+                <div class="kpi-value num" id="ws-sets">—</div>
+                <div class="kpi-foot">за 30 дней</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Тоннаж</div>
+                <div class="kpi-value num" id="ws-tonnage">—</div>
+                <div class="kpi-foot">кг за 30 дней</div>
+              </div>
+            </div>
+
+            <div class="eyebrow">История</div>
+            <div class="search" style="margin-bottom:8px">
+              <svg><use href="#i-search"/></svg>
+              <input id="workout-search" type="search" placeholder="Поиск по упражнению" autocomplete="off" aria-label="Поиск по упражнению">
+            </div>
             <div class="chips" id="workout-chips">
               <button class="chip active" data-filter="" type="button">Все</button>
               <button class="chip" data-filter="chest" type="button">Грудь</button>
               <button class="chip" data-filter="back" type="button">Спина</button>
               <button class="chip" data-filter="shoulders" type="button">Плечи</button>
               <button class="chip" data-filter="biceps" type="button">Бицепс</button>
+              <button class="chip" data-filter="triceps" type="button">Трицепс</button>
               <button class="chip" data-filter="legs" type="button">Ноги</button>
               <button class="chip" data-filter="abs" type="button">Пресс</button>
+              <button class="chip" data-filter="cardio" type="button">Кардио</button>
             </div>
             <div class="list" id="workout-list"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== ВЕС ===== -->
+      <!-- ================================================================
+           ВЕС
+           ================================================================ -->
       <section class="panel" id="panel-weight">
         <div class="split">
-          <div class="sticky reveal">
+          <div class="sticky">
             <div class="eyebrow">Новая запись</div>
             <div class="card">
-              <form id="weight-form">
-                <div class="field"><label>Вес, кг</label><input name="weight_kg" type="number" step="0.1" min="0" inputmode="decimal" placeholder="75.5" required></div>
-                <div class="row">
-                  <div class="field"><label>Жир, %</label><input name="body_fat_percent" type="number" step="0.1" min="0" inputmode="decimal" placeholder="15"></div>
-                  <div class="field"><label>Мышцы, кг</label><input name="muscle_mass_kg" type="number" step="0.1" min="0" inputmode="decimal" placeholder="35"></div>
+              <form id="weight-form" novalidate>
+                <div class="field">
+                  <label for="b-weight">Вес, кг</label>
+                  <div class="stepper">
+                    <button type="button" data-step="-0.1" data-for="b-weight" aria-label="Уменьшить вес"><svg style="width:14px;height:14px"><use href="#i-minus"/></svg></button>
+                    <input id="b-weight" name="weight_kg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="78.5" required>
+                    <button type="button" data-step="0.1" data-for="b-weight" aria-label="Увеличить вес"><svg style="width:14px;height:14px"><use href="#i-plus"/></svg></button>
+                  </div>
                 </div>
-                <button class="btn" type="submit">💾 Записать</button>
+                <div class="row">
+                  <div class="field">
+                    <label for="b-fat">Жир, %</label>
+                    <input id="b-fat" name="body_fat_percent" type="number" inputmode="decimal" step="0.1" min="0" max="70" placeholder="—">
+                  </div>
+                  <div class="field">
+                    <label for="b-muscle">Мышцы, кг</label>
+                    <input id="b-muscle" name="muscle_mass_kg" type="number" inputmode="decimal" step="0.1" min="0" max="200" placeholder="—">
+                  </div>
+                </div>
+                <button class="btn" type="submit"><svg><use href="#i-check"/></svg>Сохранить вес</button>
               </form>
+            </div>
+
+            <div class="eyebrow">Темп</div>
+            <div class="card tight">
+              <div class="sub">Изменение за последние 14 дней</div>
+              <div class="kpi-value num" id="w-rate" style="font-size:22px;margin-top:6px">—</div>
+              <div class="kpi-foot" id="w-rate-note">нужно минимум две записи</div>
             </div>
           </div>
 
-          <div class="reveal">
-            <div class="eyebrow">График</div>
-            <div class="card chart" id="weight-chart"></div>
-            <div class="eyebrow">История</div>
+          <div>
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>Вес и состав тела</h3>
+                  <div class="sub" id="w-sub">—</div>
+                </div>
+                <span class="segmented" id="weight-range">
+                  <button data-range="30" class="active" type="button">30 дн</button>
+                  <button data-range="90" type="button">90 дн</button>
+                  <button data-range="all" type="button">Всё</button>
+                </span>
+              </div>
+              <div class="chart-box tall" id="weight-chart-wrap"><canvas id="weight-chart" role="img" aria-label="График веса"></canvas></div>
+              <div class="chart-legend">
+                <span><i style="background:#2dd4bf"></i>Вес</span>
+                <span><i style="background:#64748b"></i>Среднее за 7 записей</span>
+              </div>
+            </div>
+
+            <div class="eyebrow">История замеров</div>
             <div class="list" id="weight-list"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== КАЛЬКУЛЯТОРЫ ===== -->
+      <!-- ================================================================
+           РАСЧЁТЫ
+           ================================================================ -->
       <section class="panel" id="panel-calc">
-        <div class="calc-grid reveal">
-          <div class="card calc">
-            <div class="head"><div class="ico">🥩</div><div><h3>Белок</h3><div class="sub">Для роста и восстановления</div></div></div>
-            <div class="big" id="c-protein">—</div>
-            <div class="note" id="c-protein-note">Норма 1.6–2.2 г на кг веса</div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Норма белка</h3><div class="sub">1,6–2,2 г на кг веса</div></div>
+              <span class="tag"><svg style="width:13px;height:13px"><use href="#i-activity"/></svg></span>
+            </div>
+            <div class="kpi-value num" id="c-protein">—</div>
+            <div class="kpi-foot" id="c-protein-note">—</div>
           </div>
-          <div class="card calc">
-            <div class="head"><div class="ico">⚡</div><div><h3>Креатин</h3><div class="sub">Сила и выносливость</div></div></div>
-            <div class="big">3–5 г / день</div>
-            <div class="note">Каждый день, форма — моногидрат.</div>
+
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Вода</h3><div class="sub">30–35 мл на кг веса</div></div>
+              <span class="tag"><svg style="width:13px;height:13px"><use href="#i-droplet"/></svg></span>
+            </div>
+            <div class="kpi-value num" id="c-water">—</div>
+            <div class="kpi-foot">в день, включая еду и тренировки</div>
           </div>
-          <div class="card calc">
-            <div class="head"><div class="ico">💧</div><div><h3>Вода</h3><div class="sub">Гидратация</div></div></div>
-            <div class="big" id="c-water">—</div>
-            <div class="note">Ориентир: 30–35 мл на кг веса.</div>
+
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Калории</h3><div class="sub">Базовый расход (BMR) и норма</div></div>
+              <span class="tag"><svg style="width:13px;height:13px"><use href="#i-flame"/></svg></span>
+            </div>
+            <div class="kpi-value num" id="c-tdee">—</div>
+            <div class="kpi-foot" id="c-tdee-note">—</div>
           </div>
-          <div class="card calc">
-            <div class="head"><div class="ico">🔥</div><div><h3>Калории (TDEE)</h3><div class="sub">Суточный расход</div></div></div>
-            <div class="big" id="c-tdee">—</div>
-            <div class="note" id="c-tdee-note">Заполни профиль для расчёта</div>
+
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Индекс массы тела</h3><div class="sub">ИМТ и коридор веса</div></div>
+              <span class="tag"><svg style="width:13px;height:13px"><use href="#i-scale"/></svg></span>
+            </div>
+            <div class="kpi-value num" id="c-bmi">—</div>
+            <div class="kpi-foot" id="c-bmi-note">—</div>
           </div>
-          <div class="card calc">
-            <div class="head"><div class="ico">📏</div><div><h3>Индекс массы тела</h3><div class="sub">ИМТ</div></div></div>
-            <div class="big" id="c-bmi">—</div>
-            <div class="note" id="c-bmi-note">Нужны вес и рост</div>
+
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Максимум на 1 повтор</h3><div class="sub">Формула Эпли</div></div>
+              <span class="tag"><svg style="width:13px;height:13px"><use href="#i-dumbbell"/></svg></span>
+            </div>
+            <div class="row" style="margin-bottom:10px">
+              <div class="field">
+                <label for="rm-weight">Вес, кг</label>
+                <input id="rm-weight" type="number" inputmode="decimal" step="0.5" min="0" placeholder="60">
+              </div>
+              <div class="field">
+                <label for="rm-reps">Повторы</label>
+                <input id="rm-reps" type="number" inputmode="numeric" step="1" min="1" max="20" placeholder="8">
+              </div>
+            </div>
+            <div class="kpi-value num" id="c-rm">—</div>
+            <div class="kpi-foot">оценка 1ПМ по последнему подходу из истории</div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div><h3>БЖУ</h3><div class="sub">Раскладка под текущую цель</div></div>
+              <span class="tag"><svg style="width:13px;height:13px"><use href="#i-target"/></svg></span>
+            </div>
+            <div class="kpi-value num" id="c-macros">—</div>
+            <div class="kpi-foot" id="c-macros-note">—</div>
           </div>
         </div>
       </section>
 
-      <!-- ===== ПРОФИЛЬ ===== -->
+      <!-- ================================================================
+           ПРОФИЛЬ
+           ================================================================ -->
       <section class="panel" id="panel-profile">
-        <div class="split even">
-          <div class="reveal">
+        <div class="split">
+          <div>
             <div class="eyebrow">Мои данные</div>
             <div class="card">
-              <form id="profile-form">
+              <form id="profile-form" novalidate>
                 <div class="row">
-                  <div class="field"><label>Вес, кг</label><input name="weight_kg" type="number" step="0.1" min="0" inputmode="decimal" placeholder="75.5"></div>
-                  <div class="field"><label>Рост, см</label><input name="height_cm" type="number" min="0" inputmode="numeric" placeholder="180"></div>
-                </div>
-                <div class="row">
-                  <div class="field"><label>Возраст</label><input name="age" type="number" min="0" inputmode="numeric" placeholder="25"></div>
-                  <div class="field"><label>Пол</label>
-                    <select name="gender"><option value="male">Мужской</option><option value="female">Женский</option></select>
+                  <div class="field">
+                    <label for="p-weight">Вес, кг</label>
+                    <input id="p-weight" name="weight_kg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="78.5">
+                  </div>
+                  <div class="field">
+                    <label for="p-height">Рост, см</label>
+                    <input id="p-height" name="height_cm" type="number" inputmode="numeric" step="1" min="100" max="250" placeholder="180">
                   </div>
                 </div>
-                <div class="field"><label>Цель</label>
-                  <select name="goal">
-                    <option value="mass">💪 Набор массы</option>
-                    <option value="cut">🔥 Похудение</option>
-                    <option value="maintain">⚖️ Поддержание</option>
+                <div class="row">
+                  <div class="field">
+                    <label for="p-age">Возраст</label>
+                    <input id="p-age" name="age" type="number" inputmode="numeric" step="1" min="10" max="100" placeholder="28">
+                  </div>
+                  <div class="field">
+                    <label for="p-gender">Пол</label>
+                    <select id="p-gender" name="gender">
+                      <option value="male">Мужской</option>
+                      <option value="female">Женский</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="p-goal">Цель</label>
+                  <select id="p-goal" name="goal">
+                    <option value="mass">Набор массы</option>
+                    <option value="cut">Похудение</option>
+                    <option value="maintain">Поддержание формы</option>
                   </select>
                 </div>
-                <button class="btn" type="submit">💾 Сохранить</button>
+                <button class="btn" type="submit"><svg><use href="#i-check"/></svg>Сохранить профиль</button>
               </form>
             </div>
           </div>
 
-          <div class="reveal">
+          <div>
             <div class="eyebrow">Вход на сайте</div>
             <div class="card">
-              <div class="sub">Код для входа в браузере вне Telegram</div>
+              <div class="sub">Код для браузера вне Telegram. Никому его не передавай — это доступ к твоим данным.</div>
               <div class="code-box" id="sync-code-display">Не создан</div>
-              <button class="btn" id="gen-code-btn" type="button">🔑 Сгенерировать код</button>
-              <button class="btn ghost hidden" id="copy-code-btn" type="button">📋 Скопировать</button>
+              <button class="btn ghost" id="gen-code-btn" type="button" style="margin-top:12px"><svg><use href="#i-refresh"/></svg>Сгенерировать код</button>
+              <button class="btn ghost hidden" id="copy-code-btn" type="button"><svg><use href="#i-copy"/></svg>Скопировать</button>
             </div>
-            <button class="btn danger hidden" id="logout-btn" type="button">🚪 Выйти из аккаунта</button>
+
+            <div class="eyebrow">Данные</div>
+            <div class="card">
+              <div class="sub">Скачать копию всех записей в JSON — пригодится для таблиц и бэкапа.</div>
+              <button class="btn ghost" id="export-btn" type="button" style="margin-top:12px"><svg><use href="#i-download"/></svg>Скачать JSON</button>
+              <button class="btn danger hidden" id="logout-btn" type="button" style="margin-top:8px"><svg><use href="#i-logout"/></svg>Выйти из аккаунта</button>
+            </div>
+
+            <div class="sub" style="margin-top:14px; text-align:center">Trek Fit · сборка 3.0</div>
           </div>
         </div>
       </section>
@@ -512,483 +510,1198 @@
     </div>
   </main>
 
-  <!-- Нижняя навигация: телефон -->
-  <nav class="bottomnav" id="bottomnav">
-    <button class="nav-btn active" data-nav="home" type="button"><span class="ico">🏠</span><span>Главная</span></button>
-    <button class="nav-btn" data-nav="workouts" type="button"><span class="ico">💪</span><span>Тренировки</span></button>
-    <button class="nav-btn" data-nav="weight" type="button"><span class="ico">⚖️</span><span>Вес</span></button>
-    <button class="nav-btn" data-nav="calc" type="button"><span class="ico">🧮</span><span>Расчёты</span></button>
-    <button class="nav-btn" data-nav="profile" type="button"><span class="ico">👤</span><span>Профиль</span></button>
+  <nav class="bottomnav">
+    <button class="nav-btn active" data-nav="home" type="button"><svg class="ic"><use href="#i-home"/></svg><span>Обзор</span></button>
+    <button class="nav-btn" data-nav="workouts" type="button"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Тренировки</span></button>
+    <button class="nav-btn" data-nav="weight" type="button"><svg class="ic"><use href="#i-scale"/></svg><span>Вес</span></button>
+    <button class="nav-btn" data-nav="calc" type="button"><svg class="ic"><use href="#i-calc"/></svg><span>Расчёты</span></button>
+    <button class="nav-btn" data-nav="profile" type="button"><svg class="ic"><use href="#i-user"/></svg><span>Профиль</span></button>
   </nav>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- Локальная библиотека Supabase: хранится в vendor/, поэтому CDN для Supabase не нужен. -->
-<script src="./vendor/supabase.js"></script>
+<!-- Локальные библиотеки: без CDN, версии зафиксированы -->
+<script src="vendor/chart.umd.min.js"></script>
+<script src="vendor/supabase.js"></script>
 
-<!-- Встроенный код приложения: файл полностью автономен, кроме внешних SDK -->
 <script>
 (function () {
   'use strict';
 
-  // ---------- Утилиты ----------
-  const $  = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  /* ============================================================
+     0. Утилиты
+     ============================================================ */
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nf = new Intl.NumberFormat('ru-RU');
+  const nf1 = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
-    del(k) { try { localStorage.removeItem(k); } catch (_) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (_) {} }
   };
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const round = (v, d) => { const p = Math.pow(10, d || 0); return Math.round(v * p) / p; };
 
-  // ---------- Telegram ----------
+  /* ============================================================
+     1. Telegram
+     ============================================================ */
   const tg = (window.Telegram && window.Telegram.WebApp) || null;
   try { tg && tg.ready(); tg && tg.expand(); } catch (_) {}
-  try { tg && tg.setHeaderColor && tg.setHeaderColor('#0b1220'); tg && tg.setBackgroundColor && tg.setBackgroundColor('#0b1220'); } catch (_) {}
+  try {
+    tg && tg.setHeaderColor && tg.setHeaderColor('#080b12');
+    tg && tg.setBackgroundColor && tg.setBackgroundColor('#080b12');
+  } catch (_) {}
+
   const initData = (tg && tg.initData) || '';
   const isTelegram = !!initData;
+  const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
   let syncCode = store.get('trek_sync_code');
 
-  // ---------- Supabase ----------
+  /* ============================================================
+     2. Supabase + api() с таймаутом и повтором
+     ============================================================ */
   const SUPABASE_URL = 'https://xxauwkymufehmoprmhay.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_ABzZaqdreTP8pe6L3fMFRA_kYo6J81W';
   let sb = null;
-  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { console.error('Supabase SDK не загрузился', e); }
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+  catch (e) { console.error('Supabase SDK не загрузился', e); }
 
-  async function api(action, payload = {}) {
+  function withTimeout(promise, ms, label) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(label || 'Сервер не ответил за 15 секунд')), ms))
+    ]);
+  }
+
+  async function api(action, payload) {
     if (!sb) throw new Error('Нет связи с сервером');
-    const { data, error } = await sb.functions.invoke('telegram-api', { body: { initData, syncCode, action, payload } });
+    const body = { initData: initData, syncCode: syncCode, action: action, payload: payload || {} };
+    const call = sb.functions.invoke('telegram-api', { body: body });
+    const res = await withTimeout(call, 15000);
+    const data = res && res.data;
+    const error = res && res.error;
     if (error) throw new Error(error.message || 'Ошибка запроса');
     if (data && data.error) throw new Error(data.error);
-    return data;
+    return data || {};
   }
 
-  // ---------- Состояние ----------
-  const state = { profile: null, workouts: [], weights: [], filter: '', tab: 'home' };
+  async function apiRetry(action, payload) {
+    try { return await api(action, payload); }
+    catch (e) {
+      if (!/за 15 секунд|Failed to fetch|NetworkError/i.test(String(e.message))) throw e;
+      return api(action, payload);
+    }
+  }
 
-  const GROUPS = { chest: '🫁 Грудь', back: '🔙 Спина', shoulders: '🏔 Плечи', biceps: '💪 Бицепс', legs: '🦵 Ноги', abs: '🎯 Пресс' };
-  const TITLES = {
-    home: ['Главная', 'Твой дневник тренировок'],
-    workouts: ['Тренировки', 'Записывай подходы и следи за прогрессом'],
-    weight: ['Вес и жир', 'Динамика веса и состава тела'],
-    calc: ['Калькуляторы', 'Нормы белка, воды, калорий'],
-    profile: ['Профиль', 'Твои данные и вход на сайте'],
+  /* ============================================================
+     3. Каталог упражнений
+     ============================================================ */
+  const GROUPS = {
+    chest: 'Грудь', back: 'Спина', shoulders: 'Плечи', biceps: 'Бицепс',
+    triceps: 'Трицепс', legs: 'Ноги', abs: 'Пресс', cardio: 'Кардио'
   };
 
-  // ---------- Уведомления ----------
-  let toastTimer;
-  function toast(msg, type = '') {
-    const el = $('#toast');
-    el.textContent = msg;
-    el.className = 'toast show ' + type;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
-  }
-
-  // ---------- Анимации (Web Animations API, без внешних библиотек) ----------
-  function reveal(panel) {
-    if (!panel || !panel.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    $$('.reveal', panel).forEach((el, i) => {
-      try {
-        el.animate(
-          [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'translateY(0)' }],
-          { duration: 420, delay: i * 70, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' }
-        );
-      } catch (_) {}
-    });
-  }
-
-  function countUp(el, to, { decimals = 0, suffix = '' } = {}) {
-    if (!el) return;
-    if (to === null || to === undefined || isNaN(to)) { el.textContent = '—'; return; }
-    const dur = 700, t0 = performance.now();
-    (function step(t) {
-      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-      el.innerHTML = (to * e).toFixed(decimals) + (suffix ? ' <small>' + suffix + '</small>' : '');
-      if (p < 1) requestAnimationFrame(step);
-    })(t0);
-  }
-
-  // ---------- Навигация ----------
-  function showTab(name) {
-    if (!TITLES[name]) name = 'home';
-    state.tab = name;
-    $$('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === name));
-    $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
-    $('#page-title').textContent = TITLES[name][0];
-    $('#page-sub').textContent = TITLES[name][1];
-    window.scrollTo(0, 0);
-    try { sessionStorage.setItem('trek_tab', name); } catch (_) {}
-    renderTab(name);
-    reveal($('#panel-' + name));
-  }
-
-  // Делегирование: работает и для боковой панели, и для нижней навигации
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-nav]');
-    if (btn) { e.preventDefault(); showTab(btn.dataset.nav); }
-  });
-
-  // ---------- Расчёты ----------
-  function tdee(p) {
-    if (!p || !p.weight_kg || !p.height_cm || !p.age) return null;
-    const base = 10 * p.weight_kg + 6.25 * p.height_cm - 5 * p.age + (p.gender === 'female' ? -161 : 5);
-    return Math.round(base * 1.55);
-  }
-  function currentWeight() {
-    if (state.weights.length) return Number(state.weights[0].weight_kg);
-    return state.profile && state.profile.weight_kg ? Number(state.profile.weight_kg) : null;
-  }
-  const dayKey = (d) => { d = new Date(d); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
-  function streak() {
-    const days = new Set(state.workouts.map(w => dayKey(w.logged_at)));
-    const d = new Date();
-    if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
-    let n = 0;
-    while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
-    return n;
-  }
-  function weekCount() {
-    const since = Date.now() - 7 * 864e5;
-    return new Set(state.workouts.filter(w => new Date(w.logged_at).getTime() >= since).map(w => dayKey(w.logged_at))).size;
-  }
-  function fmtDate(v) {
-    const d = new Date(v), now = new Date(), y = new Date(); y.setDate(now.getDate() - 1);
-    if (d.toDateString() === now.toDateString()) return 'Сегодня';
-    if (d.toDateString() === y.toDateString()) return 'Вчера';
-    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-  }
-
-  // ---------- График (SVG) ----------
-  function chartSvg(entries, id) {
-    const pts = entries.slice(0, 30).reverse().map(e => ({ v: Number(e.weight_kg), t: e.logged_at }));
-    if (pts.length < 2) return '<div class="empty"><b>📈</b>Добавь минимум две записи веса, чтобы увидеть график</div>';
-    const W = 600, H = 220, pl = 38, pr = 14, pt = 18, pb = 28;
-    const vs = pts.map(p => p.v);
-    let min = Math.min(...vs), max = Math.max(...vs);
-    if (max - min < 1) { min -= 1; max += 1; }
-    const pad = (max - min) * 0.15; min -= pad; max += pad;
-    const x = i => pl + i * (W - pl - pr) / (pts.length - 1);
-    const y = v => pt + (1 - (v - min) / (max - min)) * (H - pt - pb);
-    const line = pts.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p.v).toFixed(1)).join(' ');
-    const area = line + ' L' + x(pts.length - 1).toFixed(1) + ' ' + (H - pb) + ' L' + pl + ' ' + (H - pb) + ' Z';
-    const ticks = [0, 0.5, 1].map(k => { const v = min + (max - min) * k; return { v, y: y(v) }; });
-    const grid = ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${t.y.toFixed(1)}" y2="${t.y.toFixed(1)}" stroke="rgba(148,163,184,.15)"/><text x="${pl - 8}" y="${(t.y + 4).toFixed(1)}" text-anchor="end">${t.v.toFixed(1)}</text>`).join('');
-    const last = pts[pts.length - 1], first = pts[0];
-    const dots = pts.length <= 20 ? pts.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.5" fill="#0b1220" stroke="#38bdf8" stroke-width="2"/>`).join('') : '';
-    const d = (t) => new Date(t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="График веса">
-      <defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity=".35"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs>
-      ${grid}
-      <path d="${area}" fill="url(#g${id})"/>
-      <path d="${line}" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-      ${dots}
-      <circle cx="${x(pts.length - 1).toFixed(1)}" cy="${y(last.v).toFixed(1)}" r="5" fill="#38bdf8"/>
-      <text x="${pl}" y="${H - 8}">${d(first.t)}</text>
-      <text x="${W - pr}" y="${H - 8}" text-anchor="end">${d(last.t)}</text>
-    </svg>`;
-  }
-
-  // ---------- Каталог упражнений ----------
   const EXERCISES = {
     chest: ['Жим лёжа', 'Жим гантелей лёжа', 'Жим на наклонной скамье', 'Разводка гантелей', 'Сведение рук в тренажёре', 'Отжимания', 'Отжимания на брусьях'],
     back: ['Подтягивания', 'Тяга верхнего блока', 'Тяга горизонтального блока', 'Тяга штанги в наклоне', 'Тяга гантели одной рукой', 'Гиперэкстензия', 'Становая тяга'],
     shoulders: ['Жим штанги стоя', 'Жим гантелей сидя', 'Махи гантелями в стороны', 'Махи гантелями перед собой', 'Разведение в наклоне', 'Шраги'],
     biceps: ['Подъём штанги на бицепс', 'Подъём гантелей на бицепс', 'Молотки', 'Сгибание рук на скамье Скотта', 'Сгибание рук в блоке'],
+    triceps: ['Французский жим', 'Разгибание на блоке', 'Отжимания узким хватом', 'Разгибание гантели из-за головы'],
     legs: ['Приседания со штангой', 'Жим ногами', 'Разгибание ног', 'Сгибание ног', 'Румынская тяга', 'Выпады', 'Подъём на носки'],
-    abs: ['Скручивания', 'Подъём ног', 'Планка', 'Велосипед', 'Скручивания на блоке']
+    abs: ['Скручивания', 'Подъём ног', 'Планка', 'Велосипед', 'Скручивания на блоке'],
+    cardio: ['Бег', 'Ходьба', 'Велотренажёр', 'Эллипсоид', 'Гребля', 'Скакалка']
   };
-  function updateExerciseOptions() {
-    const group = $('#workout-form [name="muscle_group"]').value;
-    const select = $('#exercise-select');
-    const previous = select.value;
-    const options = EXERCISES[group] || [];
-    select.innerHTML = options.map(name => '<option value="' + esc(name) + '">' + esc(name) + '</option>').join('') +
-      '<option value="Другое">✏️ Другое упражнение…</option>';
-    if (options.includes(previous) || previous === 'Другое') select.value = previous;
-    $('#custom-exercise-wrap').classList.toggle('hidden', select.value !== 'Другое');
-    $('#custom-exercise').required = select.value === 'Другое';
-  }
-  $('#workout-form [name="muscle_group"]').addEventListener('change', updateExerciseOptions);
-  $('#exercise-select').addEventListener('change', () => {
-    const custom = $('#exercise-select').value === 'Другое';
-    $('#custom-exercise-wrap').classList.toggle('hidden', !custom);
-    $('#custom-exercise').required = custom;
-    if (custom) $('#custom-exercise').focus();
-  });
-  updateExerciseOptions();
 
-  function workoutHistoryChart(workouts) {
+  const EX_GROUP = {};
+  Object.keys(EXERCISES).forEach(g => EXERCISES[g].forEach(n => { EX_GROUP[n] = g; }));
+
+  const OTHER = '__other__';
+
+  /* ============================================================
+     4. Даты (локальное время, без сюрпризов UTC)
+     ============================================================ */
+  function parseDate(v) {
+    if (v instanceof Date) return v;
+    if (typeof v === 'number') return new Date(v);
+    if (!v) return new Date(NaN);
+    const s = String(v).trim();
+    // "2026-10-19 21:30:00" / "2026-10-19T21:30:00" без зоны — считаем локальным временем
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+    const d = new Date(s);
+    return d;
+  }
+
+  const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const dayKey = (d) => {
+    const x = startOfDay(d);
+    return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+  };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const sameDay = (a, b) => dayKey(a) === dayKey(b);
+
+  function fmtDay(d) {
     const now = new Date();
-    const days = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(now);
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - i);
-      const key = dayKey(d);
-      days.push({ date: d, key, label: d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', ''), count: 0 });
-    }
-    const byKey = new Map(days.map(d => [d.key, d]));
-    workouts.forEach(w => {
-      const d = new Date(w.logged_at);
-      const key = dayKey(d);
-      if (byKey.has(key)) byKey.get(key).count++;
-    });
-    const total = days.reduce((n, d) => n + d.count, 0);
-    const active = days.filter(d => d.count > 0).length;
-    if (!total) return '<div class="empty"><b>📊</b>Добавь первую тренировку — здесь появится график активности</div>';
-    const W = 600, H = 190, left = 18, right = 12, top = 28, bottom = 34;
-    const plotH = H - top - bottom, gap = 7, barW = (W - left - right - gap * 13) / 14;
-    const max = Math.max(1, ...days.map(d => d.count));
-    const bars = days.map((d, i) => {
-      const bh = d.count ? Math.max(4, d.count / max * plotH) : 2;
-      const x = left + i * (barW + gap), y = top + plotH - bh;
-      const label = i % 2 === 0 || i === 13 ? d.label : '';
-      return '<g><rect class="bar" style="animation-delay:' + (i * 28) + 'ms" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="4" fill="' + (d.count ? '#38bdf8' : 'rgba(148,163,184,.18)') + '"><title>' + esc(d.label) + ': ' + d.count + ' записей</title></rect>' +
-        (d.count ? '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (y - 5).toFixed(1) + '" text-anchor="middle" class="bar-label">' + d.count + '</text>' : '') +
-        (label ? '<text x="' + (x + barW / 2).toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle" class="bar-label">' + esc(label) + '</text>' : '') + '</g>';
-    }).join('');
-    return '<div class="history-summary"><span>Тренировочные записи за 14 дней</span><span><strong>' + total + '</strong> записей · ' + active + ' активных дней</span></div>' +
-      '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Активность тренировок за последние 14 дней">' + bars + '</svg>';
+    if (sameDay(d, now)) return 'Сегодня';
+    if (sameDay(d, addDays(now, -1))) return 'Вчера';
+    return parseDate(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  }
+  function fmtShort(d) {
+    return parseDate(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
   }
 
-  // ---------- Отрисовка ----------
-  function workoutItem(w) {
-    const bits = [];
-    if (w.weight_kg != null) bits.push(esc(w.weight_kg) + ' кг');
-    if (w.reps != null) bits.push(esc(w.reps) + ' повт.');
-    if (w.sets != null) bits.push(esc(w.sets) + ' подх.');
-    return `<div class="item">
-      <div>
-        <div class="item-title">${esc(w.exercise)}</div>
-        <div class="item-sub"><span class="tag">${esc(GROUPS[w.muscle_group] || w.muscle_group)}</span>${bits.map(b => `<span>${b}</span>`).join('')}</div>
-      </div>
-      <div class="item-date">${fmtDate(w.logged_at)}</div>
-    </div>`;
+  /* ============================================================
+     5. Расчёты
+     ============================================================ */
+  const num = (v) => (v === '' || v === null || v === undefined || isNaN(Number(v))) ? null : Number(v);
+  const e1rm = (w, r) => (w > 0 && r > 0) ? (r === 1 ? w : w * (1 + r / 30)) : 0;
+  const setCount = (w) => (num(w.sets) || 1);
+  const tonnage = (w) => {
+    const weight = num(w.weight_kg) || 0;
+    const reps = num(w.reps) || 0;
+    return weight * reps * setCount(w);
+  };
+
+  function setWeights(entries) {
+    state.weights = (entries || []).slice().sort((a, b) => parseDate(b.logged_at) - parseDate(a.logged_at));
   }
-  function weightItem(e) {
-    const bits = [];
-    if (e.body_fat_percent != null) bits.push('Жир ' + esc(e.body_fat_percent) + '%');
-    if (e.muscle_mass_kg != null) bits.push('Мышцы ' + esc(e.muscle_mass_kg) + ' кг');
-    return `<div class="item">
-      <div>
-        <div class="item-title">${esc(e.weight_kg)} кг</div>
-        ${bits.length ? `<div class="item-sub">${bits.map(b => `<span>${b}</span>`).join('')}</div>` : ''}
-      </div>
-      <div class="item-date">${fmtDate(e.logged_at)}</div>
-    </div>`;
+
+  function currentWeight() {
+    if (state.weights.length) return num(state.weights[0].weight_kg);
+    return state.profile ? num(state.profile.weight_kg) : null;
   }
-  const emptyHtml = (ico, text) => `<div class="empty"><b>${ico}</b>${text}</div>`;
+
+  function tdee(p) {
+    if (!p) return null;
+    const w = num(p.weight_kg), h = num(p.height_cm), a = num(p.age);
+    if (!w || !h || !a) return null;
+    const base = 10 * w + 6.25 * h - 5 * a + (p.gender === 'female' ? -161 : 5);
+    return Math.round(base * 1.55);
+  }
+
+  function goalKcal(p) {
+    const t = tdee(p);
+    if (!t) return null;
+    if ((p && p.goal) === 'mass') return t + 350;
+    if ((p && p.goal) === 'cut') return t - 450;
+    return t;
+  }
+
+  function streak() {
+    const days = new Set(state.workouts.map(w => dayKey(parseDate(w.logged_at))));
+    let d = new Date();
+    if (!days.has(dayKey(d))) d = addDays(d, -1);
+    let n = 0;
+    while (days.has(dayKey(d))) { n++; d = addDays(d, -1); }
+    return n;
+  }
+
+  function weekCount() {
+    const since = startOfDay(addDays(new Date(), -6));
+    return new Set(
+      state.workouts
+        .filter(w => parseDate(w.logged_at) >= since)
+        .map(w => dayKey(parseDate(w.logged_at)))
+    ).size;
+  }
+
+  function sessions(list) {
+    const map = new Map();
+    (list || state.workouts).forEach(w => {
+      const dt = parseDate(w.logged_at);
+      const k = dayKey(dt);
+      if (!map.has(k)) map.set(k, { key: k, date: startOfDay(dt), rows: [], sets: 0, tonnage: 0, groups: new Set() });
+      const s = map.get(k);
+      s.rows.push(w);
+      s.sets += setCount(w);
+      s.tonnage += tonnage(w);
+      if (w.muscle_group) s.groups.add(w.muscle_group);
+    });
+    return Array.from(map.values()).sort((a, b) => b.date - a.date);
+  }
+
+  function muscleBalance(days) {
+    const since = startOfDay(addDays(new Date(), -((days || 30) - 1)));
+    const acc = {};
+    Object.keys(GROUPS).forEach(g => { acc[g] = 0; });
+    state.workouts.forEach(w => {
+      if (parseDate(w.logged_at) < since) return;
+      const g = w.muscle_group || 'other';
+      acc[g] = (acc[g] || 0) + setCount(w);
+    });
+    const total = Object.values(acc).reduce((a, b) => a + b, 0);
+    return { total: total, rows: Object.keys(acc).map(g => ({ group: g, name: GROUPS[g] || g, sets: acc[g] })).sort((a, b) => b.sets - a.sets) };
+  }
+
+  function weeklyVolume(weeks) {
+    const n = weeks || 8;
+    const out = [];
+    const today = startOfDay(new Date());
+    for (let i = n - 1; i >= 0; i--) {
+      const anchor = addDays(today, -7 * i);
+      // неделя начинается с понедельника
+      const dow = (anchor.getDay() + 6) % 7;
+      const start = addDays(anchor, -dow);
+      const end = addDays(start, 6);
+      out.push({ start: start, end: end, tonnage: 0, sets: 0 });
+    }
+    state.workouts.forEach(w => {
+      const dt = parseDate(w.logged_at);
+      const bucket = out.find(b => dt >= b.start && dt < addDays(b.end, 1));
+      if (!bucket) return;
+      bucket.tonnage += tonnage(w);
+      bucket.sets += setCount(w);
+    });
+    return out;
+  }
+
+  function markPRs() {
+    const asc = state.workouts.slice().sort((a, b) => parseDate(a.logged_at) - parseDate(b.logged_at));
+    const best = new Map();
+    asc.forEach(w => {
+      const key = String(w.exercise || '').trim().toLowerCase();
+      if (!key) return;
+      const v = e1rm(num(w.weight_kg) || 0, num(w.reps) || 0);
+      if (!v) return;
+      const prev = best.get(key) || 0;
+      w._pr = prev > 0 && v > prev + 0.05;
+      if (v > prev) best.set(key, v);
+      w._e1rm = v;
+    });
+  }
+
+  function weightSeries(range) {
+    // ascending
+    let arr = state.weights.slice().sort((a, b) => parseDate(a.logged_at) - parseDate(b.logged_at));
+    if (range && range !== 'all') {
+      const since = startOfDay(addDays(new Date(), -(Number(range) - 1)));
+      arr = arr.filter(e => parseDate(e.logged_at) >= since);
+    }
+    return arr;
+  }
+
+  function movingAverage(arr, size) {
+    return arr.map((_, i) => {
+      const from = Math.max(0, i - size + 1);
+      const slice = arr.slice(from, i + 1);
+      return slice.reduce((s, e) => s + (num(e.weight_kg) || 0), 0) / slice.length;
+    });
+  }
+
+  function weekRate() {
+    const arr = state.weights.slice()
+      .sort((a, b) => parseDate(a.logged_at) - parseDate(b.logged_at))
+      .filter(e => parseDate(e.logged_at) >= startOfDay(addDays(new Date(), -13)));
+    if (arr.length < 2) return null;
+    const first = arr[0], last = arr[arr.length - 1];
+    const days = Math.max(1, (parseDate(last.logged_at) - parseDate(first.logged_at)) / 864e5);
+    return { perWeek: ((num(last.weight_kg) - num(first.weight_kg)) / days) * 7, days: Math.round(days) };
+  }
+
+  /* ============================================================
+     6. Состояние
+     ============================================================ */
+  const state = {
+    profile: null,
+    workouts: [],
+    weights: [],
+    tab: 'home',
+    filter: '',
+    query: '',
+    range: { home: '30', weight: '30' }
+  };
+  const charts = { home: null, weight: null, volume: null };
+
+  /* ============================================================
+     7. Уведомления, спиннеры
+     ============================================================ */
+  let toastTimer;
+  function toast(msg, type) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.className = 'toast show ' + (type || '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  async function withBusy(btn, fn) {
+    if (!btn) return fn();
+    const html = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border:2px solid rgba(0,0,0,.25);border-top-color:#04201c;border-radius:50%;display:inline-block;animation:spin .7s linear infinite"></span>';
+    try { return await fn(); }
+    finally { btn.disabled = false; btn.innerHTML = html; }
+  }
+
+  /* ============================================================
+     8. Графики (Chart.js)
+     ============================================================ */
+  const PALETTE = { accent: '#2dd4bf', accent2: '#6366f1', muted: '#64748b', line: 'rgba(148,163,184,.12)' };
+
+  function initChartDefaults() {
+    if (!window.Chart) return;
+    Chart.defaults.color = '#8a97ab';
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.font.weight = '600';
+    Chart.defaults.borderColor = PALETTE.line;
+    Chart.defaults.animation.duration = 420;
+    Chart.defaults.plugins.legend.display = false;
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(20,27,41,.96)';
+    Chart.defaults.plugins.tooltip.borderColor = 'rgba(148,163,184,.24)';
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.titleFont = { size: 11, weight: '700' };
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 12, weight: '600' };
+  }
+
+  function canvasCtx(el) {
+    try {
+      if (!el || typeof el.getContext !== 'function') return null;
+      return el.getContext('2d') || null;
+    } catch (_) { return null; }
+  }
+
+  function destroyChart(key) {
+    if (charts[key]) { try { charts[key].destroy(); } catch (_) {} charts[key] = null; }
+  }
+
+  // Chart.js считает масштабы по размеру контейнера: после показа панели
+  // пересчитываем размер и обновляем график без анимации.
+  function mountChart(key, ctx, cfg) {
+    let chart;
+    try { chart = new Chart(ctx, cfg); } catch (e) { console.error('chart', e); return; }
+    charts[key] = chart;
+    requestAnimationFrame(() => {
+      if (charts[key] !== chart) return;
+      try { chart.resize(); chart.update('none'); } catch (_) {}
+    });
+  }
+
+  function drawWeightChart(canvasId, key, range) {
+    if (!window.Chart) return;
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    const ctx0 = canvasCtx(el);
+    destroyChart(key);
+    if (!ctx0) return;
+    const arr = weightSeries(range);
+    if (arr.length < 2) {
+      try { ctx0.clearRect(0, 0, el.width, el.height); } catch (_) {}
+      return;
+    }
+    const labels = arr.map(e => fmtShort(e.logged_at));
+    const values = arr.map(e => num(e.weight_kg));
+    const ma = movingAverage(arr, 7);
+
+    mountChart(key, ctx0, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Вес',
+            data: values,
+            borderColor: PALETTE.accent,
+            borderWidth: 2,
+            pointRadius: arr.length > 40 ? 0 : 2.5,
+            pointBackgroundColor: '#0b1018',
+            pointBorderColor: PALETTE.accent,
+            pointBorderWidth: 1.5,
+            pointHoverRadius: 5,
+            tension: .35,
+            fill: true,
+            backgroundColor: (context) => {
+              const chart = context.chart;
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return 'rgba(45,212,191,.10)';
+              const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+              g.addColorStop(0, 'rgba(45,212,191,.28)');
+              g.addColorStop(1, 'rgba(45,212,191,0)');
+              return g;
+            }
+          },
+          {
+            label: 'Среднее',
+            data: ma,
+            borderColor: 'rgba(100,116,139,.85)',
+            borderWidth: 1.5,
+            borderDash: [5, 4],
+            pointRadius: 0,
+            tension: .35,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        layout: { padding: { top: 6, right: 4, left: 0, bottom: 0 } },
+        scales: {
+          x: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: { maxTicksLimit: 6, maxRotation: 0, autoSkip: true, color: '#5f6d82' }
+          },
+          y: {
+            grid: { color: PALETTE.line, drawTicks: false },
+            border: { display: false },
+            ticks: {
+              padding: 8,
+              color: '#5f6d82',
+              callback: (v) => nf1.format(v)
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const i = items[0].dataIndex;
+                const d = parseDate(arr[i].logged_at);
+                return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+              },
+              label: (item) => ' ' + nf1.format(item.parsed.y) + ' кг' + (item.datasetIndex === 1 ? ' · среднее' : '')
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function drawVolumeChart() {
+    if (!window.Chart) return;
+    const el = document.getElementById('volume-chart');
+    if (!el) return;
+    const ctx0 = canvasCtx(el);
+    destroyChart('volume');
+    if (!ctx0) return;
+    const weeks = weeklyVolume(8);
+    mountChart('volume', ctx0, {
+      type: 'bar',
+      data: {
+        labels: weeks.map(w => fmtShort(w.start)),
+        datasets: [{
+          data: weeks.map(w => round(w.tonnage, 0)),
+          backgroundColor: (ctx) => {
+            const chart = ctx.chart;
+            const { ctx: c, chartArea } = chart;
+            if (!chartArea) return 'rgba(99,102,241,.55)';
+            const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, 'rgba(99,102,241,.95)');
+            g.addColorStop(1, 'rgba(99,102,241,.35)');
+            return g;
+          },
+          borderRadius: 6,
+          borderSkipped: false,
+          maxBarThickness: 34
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 8 } },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { color: '#5f6d82', maxRotation: 0 } },
+          y: {
+            grid: { color: PALETTE.line, drawTicks: false },
+            border: { display: false },
+            ticks: {
+              padding: 8,
+              color: '#5f6d82',
+              maxTicksLimit: 4,
+              callback: (v) => v >= 1000 ? nf1.format(v / 1000) + ' т' : v
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const w = weeks[items[0].dataIndex];
+                return fmtShort(w.start) + ' — ' + fmtShort(w.end);
+              },
+              label: (item) => ' ' + nf.format(item.parsed.y) + ' кг · ' + nf.format(weeks[item.dataIndex].sets) + ' подходов'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* ============================================================
+     9. Рендер: обзор
+     ============================================================ */
+  function goalGood(diff) {
+    // true — движение к цели, false — против цели, null — нейтрально
+    const goal = (state.profile && state.profile.goal) || 'maintain';
+    if (Math.abs(diff) < 0.05) return null;
+    if (goal === 'mass') return diff > 0;
+    if (goal === 'cut') return diff < 0;
+    return Math.abs(diff) < 0.4;
+  }
 
   function renderHome() {
     const p = state.profile || {};
-    const name = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || 'друг';
-    const h = new Date().getHours();
-    $('#hero-title').textContent = (h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер') + ', ' + name + ' 👋';
-    $('#hero-text').textContent = p.goal === 'cut' ? 'Цель — похудение. Держим курс!' : p.goal === 'maintain' ? 'Цель — поддержание формы.' : 'Цель — набор массы. Вперёд к рекордам!';
+    const w = currentWeight();
+    const balance = muscleBalance(30);
+    const sessionsAll = sessions();
+    const today = sessionsAll.find(s => sameDay(s.date, new Date()));
+    const name = (tgUser && tgUser.first_name) || (isTelegram ? 'атлет' : 'атлет');
 
-    countUp($('#st-weight'), currentWeight(), { decimals: 1, suffix: 'кг' });
-    if (state.weights.length >= 2) {
-      const diff = state.weights[0].weight_kg - state.weights[1].weight_kg;
-      const el = $('#st-weight-delta');
-      el.textContent = (diff > 0 ? '▲ +' : diff < 0 ? '▼ ' : '• ') + diff.toFixed(1) + ' кг';
-      el.className = 'delta ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '');
-    } else { $('#st-weight-delta').innerHTML = '&nbsp;'; }
-    countUp($('#st-week'), weekCount());
-    countUp($('#st-streak'), streak());
-    const k = tdee(p);
-    if (k) countUp($('#st-kcal'), k); else $('#st-kcal').textContent = '—';
+    // KPI
+    $('#st-weight').innerHTML = w ? nf1.format(w) + ' <small>кг</small>' : '—';
+    const arr = state.weights;
+    if (arr.length >= 2) {
+      const diff = num(arr[0].weight_kg) - num(arr[1].weight_kg);
+      const sign = diff > 0 ? '+' : diff < 0 ? '−' : '';
+      const g = goalGood(diff);
+      const cls = g === true ? 'good' : g === false ? 'bad' : 'flat';
+      const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '•';
+      $('#st-weight-delta').innerHTML = '<span class="delta ' + cls + '">' + arrow + ' ' + sign + nf1.format(Math.abs(diff)) + ' кг</span> к прошлому замеру';
+    } else {
+      $('#st-weight-delta').textContent = 'нужен второй замер';
+    }
 
-    $('#home-chart').innerHTML = chartSvg(state.weights, 'h');
-    const recent = state.workouts.slice(0, 4);
-    $('#home-workouts').innerHTML = recent.length ? recent.map(workoutItem).join('') : emptyHtml('🏃', 'Пока нет тренировок');
+    $('#st-week').innerHTML = weekCount() + ' <small>/ 7</small>';
+    $('#st-streak').innerHTML = streak() + ' <small>дн</small>';
+
+    const kcal = goalKcal(p);
+    $('#st-kcal').innerHTML = kcal ? nf.format(kcal) : '—';
+    $('#st-kcal-note').textContent = p.goal === 'mass' ? 'профицит на набор' : p.goal === 'cut' ? 'дефицит на похудение' : 'поддержание веса';
+
+    // Сегодня
+    const sets = today ? today.sets : 0;
+    const ton = today ? today.tonnage : 0;
+    $('#today-sets').textContent = sets;
+    $('#today-title').textContent = sets ? 'Тренировка идёт' : 'Тренировки пока нет';
+    $('#today-sub').textContent = sets
+      ? nf.format(sets) + ' подходов · ' + nf.format(round(ton, 0)) + ' кг тоннажа'
+      : 'Запиши первый подход — начнём считать объём';
+    $('#today-date').textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    // Баланс мышц
+    const maxSets = balance.rows.reduce((m, r) => Math.max(m, r.sets), 0);
+    $('#muscle-balance').innerHTML = balance.rows.map(r => {
+      const pct = balance.total ? Math.round(r.sets / balance.total * 100) : 0;
+      const low = balance.total > 0 && r.sets === 0;
+      return '<div class="balance-row">' +
+        '<div class="balance-top"><span class="balance-name">' + esc(r.name) + '</span>' +
+        '<span class="balance-val">' + r.sets + ' подх · ' + pct + '%</span></div>' +
+        '<div class="bar ' + (low ? 'empty' : (r.sets < maxSets * 0.35 ? 'low' : '')) + '"><span style="width:' + (balance.total ? Math.max(2, pct) : 0) + '%"></span></div>' +
+        '</div>';
+    }).join('');
+
+    // Heatmap
+    renderHeatmap();
+
+    // Графики: сначала разметка, потом отрисовка
+    const wrap = $('#home-chart-wrap');
+    const hasWeight = weightSeries(state.range.home).length >= 2;
+    destroyChart('home');
+    if (wrap) {
+      wrap.innerHTML = hasWeight
+        ? '<canvas id="home-chart" role="img" aria-label="График веса"></canvas>'
+        : '<div class="empty"><svg><use href="#i-trend-up"/></svg><b>Мало данных</b>Добавь два замера веса — появится динамика</div>';
+    }
+    if (hasWeight) drawWeightChart('home-chart', 'home', state.range.home);
+    drawVolumeChart();
+
+    // Последние тренировки
+    const recent = sessionsAll.slice(0, 3);
+    $('#home-sessions').innerHTML = recent.length
+      ? recent.map(sessionHtml).join('')
+      : '<div class="empty"><svg><use href="#i-dumbbell"/></svg><b>Пока пусто</b>Первая тренировка появится здесь</div>';
+
+    // Имя
+    const initials = name.trim().slice(0, 1).toUpperCase();
+    $('#side-avatar').textContent = initials;
+    $('#top-avatar').textContent = initials;
+    $('#sidebar-user').textContent = name;
+    $('#side-streak').textContent = streak() + ' дн серия · ' + (p.goal === 'cut' ? 'похудение' : p.goal === 'mass' ? 'набор' : 'поддержание');
+    const ts = $('#top-streak');
+    if (ts) ts.querySelector('span').textContent = streak();
+  }
+
+  function renderHeatmap() {
+    const el = $('#heatmap');
+    if (!el) return;
+    const weeks = 12;
+    const today = startOfDay(new Date());
+    const dow = (today.getDay() + 6) % 7; // 0 = понедельник
+    const start = addDays(today, -(weeks * 7 - 1) - (6 - dow));
+    const counts = new Map();
+    state.workouts.forEach(w => {
+      const k = dayKey(parseDate(w.logged_at));
+      counts.set(k, (counts.get(k) || 0) + setCount(w));
+    });
+    const cells = [];
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = addDays(start, i);
+      const c = counts.get(dayKey(d)) || 0;
+      const lvl = c === 0 ? '' : c < 4 ? 'l1' : c < 8 ? 'l2' : c < 13 ? 'l3' : 'l4';
+      const inFuture = d > today;
+      cells.push('<div class="heat ' + (inFuture ? '' : lvl) + '" title="' + d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ': ' + c + ' подходов" style="' + (inFuture ? 'opacity:.25' : '') + '"></div>');
+    }
+    el.innerHTML = cells.join('');
+  }
+
+  /* ============================================================
+     10. Рендер: тренировки
+     ============================================================ */
+  function sessionHtml(s) {
+    return '<div class="session">' +
+      '<div class="session-head">' +
+        '<div>' +
+          '<div class="session-date">' + esc(fmtDay(s.date)) + '</div>' +
+          '<div class="session-meta">' + s.rows.length + ' упражн. · ' + s.sets + ' подх · ' + nf.format(round(s.tonnage, 0)) + ' кг</div>' +
+        '</div>' +
+        '<span class="row-badge">' + (s.groups.size || 1) + '</span>' +
+      '</div>' +
+      s.rows.map(rowHtml).join('') +
+    '</div>';
+  }
+
+  function rowHtml(w) {
+    const g = w.muscle_group;
+    const weight = num(w.weight_kg);
+    const reps = num(w.reps);
+    const sets = num(w.sets);
+    const parts = [];
+    if (weight) parts.push(nf1.format(weight) + ' кг');
+    if (reps) parts.push(reps + ' повт');
+    if (sets) parts.push(sets + ' подх');
+    const load = weight && reps ? (weight * reps * (sets || 1)) : 0;
+    const pr = w._pr ? '<span class="tag pr">PR</span>' : '';
+    return '<div class="set-row">' +
+      '<div>' +
+        '<div class="set-name">' + esc(w.exercise || 'Без названия') + '</div>' +
+        '<div class="set-sub">' +
+          (g ? '<span class="tag neutral">' + esc(GROUPS[g] || g) + '</span>' : '') +
+          (parts.length ? '<span>' + parts.join(' · ') + '</span>' : '<span>без веса</span>') +
+          pr +
+        '</div>' +
+      '</div>' +
+      '<div class="set-load">' + (load ? nf.format(round(load, 0)) : '—') + '<small>тоннаж, кг</small></div>' +
+    '</div>';
   }
 
   function renderWorkouts() {
-    const list = state.filter ? state.workouts.filter(w => w.muscle_group === state.filter) : state.workouts;
-    $('#workout-history-chart').innerHTML = workoutHistoryChart(state.workouts);
-    $('#workout-list').innerHTML = list.length ? list.map(workoutItem).join('') : emptyHtml('🏃', 'Нет записей');
-    $$('#workout-chips .chip').forEach(c => c.classList.toggle('active', c.dataset.filter === state.filter));
+    // статистика 30 дней
+    const since = startOfDay(addDays(new Date(), -29));
+    const recent = state.workouts.filter(w => parseDate(w.logged_at) >= since);
+    $('#ws-count').textContent = recent.length;
+    $('#ws-sets').textContent = recent.reduce((s, w) => s + setCount(w), 0);
+    $('#ws-tonnage').textContent = nf.format(round(recent.reduce((s, w) => s + tonnage(w), 0), 0));
+
+    // фильтры
+    let list = state.workouts.filter(w => !state.filter || w.muscle_group === state.filter);
+    if (state.query) {
+      const q = state.query.toLowerCase();
+      list = list.filter(w => String(w.exercise || '').toLowerCase().indexOf(q) >= 0);
+    }
+
+    const container = $('#workout-list');
+    if (!list.length) {
+      container.innerHTML = '<div class="empty"><svg><use href="#i-dumbbell"/></svg><b>Ничего не найдено</b>' +
+        (state.query || state.filter ? 'Попробуй сбросить фильтр' : 'Запиши первый подход в форме слева') + '</div>';
+      return;
+    }
+    container.innerHTML = sessions(list).slice(0, 40).map(sessionHtml).join('');
   }
 
+  /* ============================================================
+     11. Рендер: вес
+     ============================================================ */
   function renderWeight() {
-    $('#weight-chart').innerHTML = chartSvg(state.weights, 'w');
-    $('#weight-list').innerHTML = state.weights.length ? state.weights.map(weightItem).join('') : emptyHtml('⚖️', 'Пока нет записей');
+    const arr = state.weights;
+    const w = currentWeight();
+    $('#w-sub').textContent = w
+      ? 'Сейчас ' + nf1.format(w) + ' кг' + (arr.length > 1 ? ' · ' + arr.length + ' замеров' : '')
+      : 'Добавь первый замер';
+
+    const rate = weekRate();
+    if (rate) {
+      const good = goalGood(rate.perWeek);
+      const cls = good === true ? 'good' : good === false ? 'bad' : 'flat';
+      const sign = rate.perWeek > 0 ? '+' : rate.perWeek < 0 ? '−' : '';
+      $('#w-rate').innerHTML = '<span class="delta ' + cls + '">' + sign + nf1.format(Math.abs(rate.perWeek)) + ' кг</span> <small style="font-size:13px;color:#8a97ab">/ нед</small>';
+      $('#w-rate-note').textContent = 'по ' + rate.days + ' дням замеров · ' +
+        (state.profile && state.profile.goal === 'cut' ? 'для похудения норм. −0,25…−0,75' :
+         state.profile && state.profile.goal === 'mass' ? 'для набора норм. +0,2…+0,5' : 'для поддержания ±0,2');
+    } else {
+      $('#w-rate').textContent = '—';
+      $('#w-rate-note').textContent = 'нужно минимум две записи за 14 дней';
+    }
+
+    const wWrap = $('#weight-chart-wrap');
+    const hasW = weightSeries(state.range.weight).length >= 2;
+    destroyChart('weight');
+    if (wWrap) {
+      wWrap.innerHTML = hasW
+        ? '<canvas id="weight-chart" role="img" aria-label="График веса"></canvas>'
+        : '<div class="empty"><svg><use href="#i-trend-up"/></svg><b>Мало данных</b>Добавь два замера — появится динамика и темп</div>';
+    }
+    if (hasW) drawWeightChart('weight-chart', 'weight', state.range.weight);
+
+    const sorted = arr.slice().sort((a, b) => parseDate(b.logged_at) - parseDate(a.logged_at));
+    if (!sorted.length) {
+      $('#weight-list').innerHTML = '<div class="empty"><svg><use href="#i-scale"/></svg><b>Пока нет замеров</b>Первый замер — стартовая точка</div>';
+      return;
+    }
+    $('#weight-list').innerHTML = sorted.slice(0, 40).map((e, i) => {
+      const prev = sorted[i + 1];
+      let delta = '';
+      if (prev) {
+        const d = num(e.weight_kg) - num(prev.weight_kg);
+        const g = goalGood(d);
+        const cls = g === true ? 'good' : g === false ? 'bad' : 'flat';
+        delta = '<span class="delta ' + cls + '" style="font-size:11px">' + (d > 0 ? '+' : d < 0 ? '−' : '') + nf1.format(Math.abs(d)) + '</span>';
+      }
+      const bits = [];
+      if (num(e.body_fat_percent) != null) bits.push('жир ' + nf1.format(num(e.body_fat_percent)) + '%');
+      if (num(e.muscle_mass_kg) != null) bits.push('мышцы ' + nf1.format(num(e.muscle_mass_kg)) + ' кг');
+      return '<div class="session"><div class="set-row">' +
+        '<div>' +
+          '<div class="set-name num">' + nf1.format(num(e.weight_kg)) + ' кг ' + delta + '</div>' +
+          '<div class="set-sub">' + (bits.length ? bits.join(' · ') : 'без состава тела') + '</div>' +
+        '</div>' +
+        '<div class="set-load" style="font-size:12px;color:#8a97ab;font-weight:600">' + esc(fmtDay(parseDate(e.logged_at))) + '</div>' +
+      '</div></div>';
+    }).join('');
   }
 
+  /* ============================================================
+     12. Рендер: калькуляторы
+     ============================================================ */
   function renderCalc() {
-    const w = currentWeight(), p = state.profile || {};
-    $('#c-protein').textContent = w ? Math.round(w * 1.6) + '–' + Math.round(w * 2.2) + ' г' : '—';
-    $('#c-protein-note').textContent = w ? 'При весе ' + w + ' кг. Норма 1.6–2.2 г на кг.' : 'Укажи вес в профиле';
-    $('#c-water').textContent = w ? (w * 0.03).toFixed(1) + '–' + (w * 0.035).toFixed(1) + ' л' : '—';
+    const w = currentWeight();
+    const p = state.profile || {};
 
-    const k = tdee(p);
-    $('#c-tdee').textContent = k ? k + ' ккал' : '—';
-    $('#c-tdee-note').textContent = !k ? 'Заполни вес, рост и возраст в профиле'
-      : p.goal === 'mass' ? 'Для набора: около ' + (k + 300) + '–' + (k + 500) + ' ккал'
-      : p.goal === 'cut' ? 'Для похудения: около ' + (k - 500) + '–' + (k - 300) + ' ккал'
-      : 'Для поддержания: ' + k + ' ккал';
+    $('#c-protein').innerHTML = w ? Math.round(w * 1.6) + '–' + Math.round(w * 2.2) + ' <small>г</small>' : '—';
+    $('#c-protein-note').textContent = w ? 'при весе ' + nf1.format(w) + ' кг' : 'укажи вес в профиле';
 
-    if (w && p.height_cm) {
-      const bmi = w / Math.pow(p.height_cm / 100, 2);
-      $('#c-bmi').textContent = bmi.toFixed(1);
-      $('#c-bmi-note').textContent = bmi < 18.5 ? 'Дефицит массы' : bmi < 25 ? 'Норма' : bmi < 30 ? 'Избыточная масса' : 'Ожирение';
-    } else { $('#c-bmi').textContent = '—'; $('#c-bmi-note').textContent = 'Нужны вес и рост'; }
+    $('#c-water').innerHTML = w ? nf1.format(w * 0.03) + '–' + nf1.format(w * 0.035) + ' <small>л</small>' : '—';
+
+    const t = tdee(p);
+    const k = goalKcal(p);
+    $('#c-tdee').innerHTML = k ? nf.format(k) + ' <small>ккал</small>' : '—';
+    $('#c-tdee-note').textContent = !t ? 'нужны вес, рост и возраст'
+      : 'BMR ≈ ' + nf.format(Math.round(t / 1.55)) + ' · норма с активностью 1,55';
+
+    if (w && num(p.height_cm)) {
+      const h = num(p.height_cm) / 100;
+      const bmi = w / (h * h);
+      $('#c-bmi').innerHTML = nf1.format(bmi);
+      const low = 18.5 * h * h, high = 24.9 * h * h;
+      const verdict = bmi < 18.5 ? 'дефицит массы' : bmi < 25 ? 'норма' : bmi < 30 ? 'избыточная масса' : 'ожирение';
+      $('#c-bmi-note').textContent = verdict + ' · здоровый вес ' + nf1.format(low) + '–' + nf1.format(high) + ' кг';
+    } else {
+      $('#c-bmi').textContent = '—';
+      $('#c-bmi-note').textContent = 'нужны вес и рост';
+    }
+
+    // 1ПМ
+    const lastSet = state.workouts.find(x => num(x.weight_kg) && num(x.reps));
+    const rmW = $('#rm-weight'), rmR = $('#rm-reps');
+    if (rmW && !rmW.value && lastSet) { rmW.value = num(lastSet.weight_kg); rmR.value = num(lastSet.reps); }
+    const rw = num(rmW && rmW.value), rr = num(rmR && rmR.value);
+    const rm = e1rm(rw, rr);
+    $('#c-rm').innerHTML = rm ? Math.round(rm) + ' <small>кг</small>' : '—';
+
+    // БЖУ
+    if (k && w) {
+      const protein = Math.round(w * 2);
+      const fat = Math.round(w * 0.9);
+      const carbs = Math.max(0, Math.round((k - protein * 4 - fat * 9) / 4));
+      $('#c-macros').innerHTML = protein + ' / ' + fat + ' / ' + carbs + ' <small>г</small>';
+      $('#c-macros-note').textContent = 'белки / жиры / углеводы · ' + nf.format(protein * 4 + fat * 9 + carbs * 4) + ' ккал';
+    } else {
+      $('#c-macros').textContent = '—';
+      $('#c-macros-note').textContent = 'заполни профиль';
+    }
   }
 
+  /* ============================================================
+     13. Рендер: профиль
+     ============================================================ */
   function renderProfile() {
-    const p = state.profile || {}, f = $('#profile-form');
-    f.weight_kg.value = p.weight_kg ?? '';
-    f.height_cm.value = p.height_cm ?? '';
-    f.age.value = p.age ?? '';
-    f.gender.value = p.gender || 'male';
-    f.goal.value = p.goal || 'mass';
+    const p = state.profile || {};
+    const f = $('#profile-form');
+    if (f) {
+      f.weight_kg.value = p.weight_kg != null ? p.weight_kg : '';
+      f.height_cm.value = p.height_cm != null ? p.height_cm : '';
+      f.age.value = p.age != null ? p.age : '';
+      f.gender.value = p.gender || 'male';
+      f.goal.value = p.goal || 'maintain';
+    }
     if (p.sync_code) {
       $('#sync-code-display').textContent = p.sync_code;
       $('#copy-code-btn').classList.remove('hidden');
     }
   }
 
+  const TITLES = {
+    home: ['Обзор', 'Прогресс, объём и баланс тренировок'],
+    workouts: ['Тренировки', 'Записывай подходы и следи за объёмом'],
+    weight: ['Вес и состав', 'Динамика веса, жира и мышц'],
+    calc: ['Расчёты', 'Нормы питания и силовые показатели'],
+    profile: ['Профиль', 'Данные, доступ и экспорт']
+  };
+
+  /* ============================================================
+     14. Навигация
+     ============================================================ */
+  function showTab(name) {
+    if (!TITLES[name]) name = 'home';
+    state.tab = name;
+    $$('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === name));
+    $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+    const t = TITLES[name];
+    if ($('#page-title')) { $('#page-title').textContent = t[0]; $('#page-sub').textContent = t[1]; }
+    window.scrollTo(0, 0);
+    try { sessionStorage.setItem('trek_tab', name); } catch (_) {}
+    renderTab(name);
+  }
+
   function renderTab(name) {
     try {
-      ({ home: renderHome, workouts: renderWorkouts, weight: renderWeight, calc: renderCalc, profile: renderProfile }[name])();
-    } catch (e) { console.error('render', name, e); }
+      if (name === 'home') renderHome();
+      else if (name === 'workouts') renderWorkouts();
+      else if (name === 'weight') renderWeight();
+      else if (name === 'calc') renderCalc();
+      else if (name === 'profile') renderProfile();
+    } catch (e) { console.error('render ' + name, e); }
   }
 
-  // ---------- Загрузка данных ----------
-  async function loadAll() {
-    const [pr, wk, wl] = await Promise.all([api('get_profile'), api('get_workouts', {}), api('get_weight_log')]);
-    state.profile = pr.profile;
-    state.workouts = wk.workouts || [];
-    state.weights = wl.entries || [];
-    const nm = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || (isTelegram ? 'Telegram' : 'Браузер');
-    $('#topbar-user').textContent = nm;
-    $('#sidebar-user').textContent = '👤 ' + nm;
-    renderTab(state.tab);
-  }
+  document.addEventListener('click', (e) => {
+    const nav = e.target.closest('[data-nav]');
+    if (nav) { e.preventDefault(); showTab(nav.dataset.nav); return; }
 
-  async function withBusy(btn, fn) {
-    const html = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
-    try { await fn(); } finally { btn.disabled = false; btn.innerHTML = html; }
-  }
-  const num = (v) => (v === '' || v === null || v === undefined) ? null : Number(v);
+    const go = e.target.closest('[data-goto]');
+    if (go) { e.preventDefault(); showTab(go.dataset.goto); return; }
 
-  // ---------- Формы ----------
-  $('#workout-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.target, fd = new FormData(f);
-    await withBusy(f.querySelector('button[type=submit]'), async () => {
-      try {
-        await api('add_workout', {
-          exercise: String(fd.get('exercise') === 'Другое' ? fd.get('custom-exercise') : fd.get('exercise')).trim(),
-          muscle_group: fd.get('muscle_group'),
-          weight_kg: num(fd.get('weight_kg')), reps: num(fd.get('reps')), sets: num(fd.get('sets')),
-        });
-        const keep = f.muscle_group.value;
-        f.reset(); f.muscle_group.value = keep; updateExerciseOptions();
-        state.workouts = (await api('get_workouts', {})).workouts || [];
-        renderWorkouts();
-        toast('Подход записан ✅', 'ok');
-      } catch (err) { toast(err.message, 'err'); }
-    });
-  });
-
-  $('#weight-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.target, fd = new FormData(f);
-    await withBusy(f.querySelector('button[type=submit]'), async () => {
-      try {
-        await api('add_weight', { weight_kg: Number(fd.get('weight_kg')), body_fat_percent: num(fd.get('body_fat_percent')), muscle_mass_kg: num(fd.get('muscle_mass_kg')) });
-        f.reset();
-        state.weights = (await api('get_weight_log')).entries || [];
-        renderWeight();
-        toast('Запись добавлена ✅', 'ok');
-      } catch (err) { toast(err.message, 'err'); }
-    });
-  });
-
-  $('#profile-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = e.target, fd = new FormData(f);
-    await withBusy(f.querySelector('button[type=submit]'), async () => {
-      try {
-        await api('upsert_profile', { weight_kg: num(fd.get('weight_kg')), height_cm: num(fd.get('height_cm')), age: num(fd.get('age')), gender: fd.get('gender'), goal: fd.get('goal') });
-        state.profile = (await api('get_profile')).profile;
-        toast('Профиль сохранён ✅', 'ok');
-      } catch (err) { toast(err.message, 'err'); }
-    });
-  });
-
-  // Фильтр
-  $('#workout-chips').addEventListener('click', (e) => {
-    const c = e.target.closest('.chip');
-    if (!c) return;
-    state.filter = c.dataset.filter;
-    renderWorkouts();
-  });
-
-  // Код синхронизации
-  $('#gen-code-btn').addEventListener('click', (e) => withBusy(e.currentTarget, async () => {
-    try {
-      const { sync_code } = await api('generate_sync_code');
-      if (state.profile) state.profile.sync_code = sync_code;
-      $('#sync-code-display').textContent = sync_code;
-      $('#copy-code-btn').classList.remove('hidden');
-      toast('Код создан. Запиши его ✅', 'ok');
-    } catch (err) { toast(err.message, 'err'); }
-  }));
-
-  $('#copy-code-btn').addEventListener('click', async () => {
-    const code = $('#sync-code-display').textContent.trim();
-    try { await navigator.clipboard.writeText(code); toast('Код скопирован 📋', 'ok'); }
-    catch (_) {
-      const r = document.createRange(); r.selectNodeContents($('#sync-code-display'));
-      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
-      toast('Код выделен — скопируй вручную');
+    const step = e.target.closest('[data-step]');
+    if (step) {
+      const input = document.getElementById(step.dataset.for);
+      if (!input) return;
+      const delta = Number(step.dataset.step);
+      const cur = Number(input.value) || 0;
+      const next = Math.max(Number(input.min || 0) || 0, Math.min(Number(input.max || 999) || 999, cur + delta));
+      input.value = round(next, 2);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
     }
   });
 
-  $('#logout-btn').addEventListener('click', () => { store.del('trek_sync_code'); location.reload(); });
+  document.addEventListener('keydown', (e) => {
+    const go = e.target.closest && e.target.closest('[data-goto]');
+    if (go && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showTab(go.dataset.goto); }
+  });
 
-  // ---------- Вход по коду ----------
+  /* ============================================================
+     15. Формы и контролы
+     ============================================================ */
+  // Селект упражнений
+  function buildExerciseSelect() {
+    const sel = $('#exercise-select');
+    if (!sel) return;
+    let html = '';
+    Object.keys(EXERCISES).forEach(g => {
+      html += '<optgroup label="' + esc(GROUPS[g]) + '">';
+      html += EXERCISES[g].map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('');
+      html += '</optgroup>';
+    });
+    html += '<option value="' + OTHER + '">Другое упражнение…</option>';
+    sel.innerHTML = html;
+    sel.value = EXERCISES.chest[0];
+    syncExerciseUI();
+  }
+
+  function syncExerciseUI() {
+    const sel = $('#exercise-select');
+    const custom = sel.value === OTHER;
+    $('#custom-wrap').classList.toggle('hidden', !custom);
+    $('#group-wrap').classList.toggle('hidden', !custom);
+    $('#custom-exercise').required = custom;
+    const hint = $('#form-hint');
+    if (hint) {
+      const w = num($('#w-weight').value), r = num($('#w-reps').value);
+      const rm = e1rm(w, r);
+      hint.textContent = rm ? '≈ 1ПМ ' + Math.round(rm) + ' кг по этому подходу' : 'Вес и повторы можно оставить пустыми для упражнений с собственным весом';
+    }
+  }
+
+  if ($('#exercise-select')) {
+    $('#exercise-select').addEventListener('change', syncExerciseUI);
+    ['w-weight', 'w-reps'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', syncExerciseUI);
+    });
+  }
+
+  // Добавить подход
+  const wf = $('#workout-form');
+  if (wf) {
+    wf.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const sel = $('#exercise-select');
+      const isOther = sel.value === OTHER;
+      const exercise = (isOther ? $('#custom-exercise').value : sel.value).trim();
+      const group = isOther ? $('#group-select').value : (EX_GROUP[sel.value] || 'chest');
+      if (!exercise) { toast('Укажи название упражнения', 'err'); return; }
+
+      const payload = {
+        exercise: exercise,
+        muscle_group: group,
+        weight_kg: num($('#w-weight').value),
+        reps: num($('#w-reps').value),
+        sets: num($('#w-sets').value) || 1
+      };
+
+      withBusy(wf.querySelector('button[type=submit]'), async () => {
+        try {
+          await api('add_workout', payload);
+          const keepGroup = $('#group-select').value;
+          const data = await api('get_workouts', {});
+          state.workouts = data.workouts || [];
+          markPRs();
+          $('#w-reps').value = '';
+          $('#custom-exercise').value = '';
+          if (isOther) { $('#group-select').value = keepGroup; }
+          renderWorkouts();
+          toast('Подход записан', 'ok');
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    });
+  }
+
+  // Вес
+  const wgtf = $('#weight-form');
+  if (wgtf) {
+    wgtf.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const value = num($('#b-weight').value);
+      if (!value || value < 20 || value > 400) { toast('Вес должен быть от 20 до 400 кг', 'err'); return; }
+      const payload = {
+        weight_kg: value,
+        body_fat_percent: num($('#b-fat').value),
+        muscle_mass_kg: num($('#b-muscle').value)
+      };
+      withBusy(wgtf.querySelector('button[type=submit]'), async () => {
+        try {
+          await api('add_weight', payload);
+          const data = await api('get_weight_log');
+          setWeights(data.entries);
+          $('#b-fat').value = '';
+          $('#b-muscle').value = '';
+          $('#b-weight').value = '';
+          renderWeight();
+          toast('Вес сохранён', 'ok');
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    });
+  }
+
+  // Профиль
+  const pf = $('#profile-form');
+  if (pf) {
+    pf.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const payload = {
+        weight_kg: num($('#p-weight').value),
+        height_cm: num($('#p-height').value),
+        age: num($('#p-age').value),
+        gender: $('#p-gender').value,
+        goal: $('#p-goal').value
+      };
+      withBusy(pf.querySelector('button[type=submit]'), async () => {
+        try {
+          await api('upsert_profile', payload);
+          const data = await api('get_profile');
+          state.profile = data.profile || state.profile;
+          renderProfile();
+          renderCalc();
+          toast('Профиль сохранён', 'ok');
+        } catch (err) { toast(err.message, 'err'); }
+      });
+    });
+  }
+
+  // Фильтры
+  const chips = $('#workout-chips');
+  if (chips) {
+    chips.addEventListener('click', (e) => {
+      const c = e.target.closest('.chip');
+      if (!c) return;
+      state.filter = c.dataset.filter;
+      $$('#workout-chips .chip').forEach(x => x.classList.toggle('active', x === c));
+      renderWorkouts();
+    });
+  }
+
+  // Поиск
+  let searchTimer;
+  const search = $('#workout-search');
+  if (search) {
+    search.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { state.query = search.value.trim(); renderWorkouts(); }, 140);
+    });
+  }
+
+  // Диапазоны
+  [['#home-range', 'home'], ['#weight-range', 'weight']].forEach(([sel, key]) => {
+    const box = $(sel);
+    if (!box) return;
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-range]');
+      if (!b) return;
+      state.range[key] = b.dataset.range;
+      $$('[data-range]', box).forEach(x => x.classList.toggle('active', x === b));
+      if (key === 'home') {
+        renderHome();
+      } else {
+        renderWeight();
+      }
+    });
+  });
+
+  // Код синхронизации
+  const genBtn = $('#gen-code-btn');
+  if (genBtn) {
+    genBtn.addEventListener('click', () => withBusy(genBtn, async () => {
+      try {
+        const res = await api('generate_sync_code');
+        const code = res.sync_code;
+        if (state.profile) state.profile.sync_code = code;
+        $('#sync-code-display').textContent = code;
+        $('#copy-code-btn').classList.remove('hidden');
+        toast('Код создан — запиши его', 'ok');
+      } catch (err) { toast(err.message, 'err'); }
+    }));
+  }
+
+  const copyBtn = $('#copy-code-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      const code = $('#sync-code-display').textContent.trim();
+      try { await navigator.clipboard.writeText(code); toast('Код скопирован', 'ok'); }
+      catch (_) {
+        const r = document.createRange();
+        r.selectNodeContents($('#sync-code-display'));
+        const s = getSelection();
+        s.removeAllRanges();
+        s.addRange(r);
+        toast('Код выделен — скопируй вручную');
+      }
+    });
+  }
+
+  // Экспорт
+  const exportBtn = $('#export-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      try {
+        const blob = new Blob([JSON.stringify({
+          exported_at: new Date().toISOString(),
+          profile: state.profile,
+          workouts: state.workouts,
+          weights: state.weights
+        }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'trekfit-' + dayKey(new Date()) + '.json';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        toast('Файл сформирован', 'ok');
+      } catch (e) { toast('Не удалось выгрузить данные', 'err'); }
+    });
+  }
+
+  const logoutBtn = $('#logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => { store.del('trek_sync_code'); location.reload(); });
+  }
+
+  // Калькуляторы: 1ПМ
+  ['rm-weight', 'rm-reps'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { renderCalc(); });
+  });
+
+  /* ============================================================
+     16. Вход по коду
+     ============================================================ */
   async function doLogin() {
-    const code = $('#sync-input').value.trim().toUpperCase();
-    if (!code) return toast('Введи код синхронизации', 'err');
+    const input = $('#sync-input');
+    const code = input.value.trim().toUpperCase();
+    if (!code) { toast('Введи код синхронизации', 'err'); return; }
     await withBusy($('#sync-btn'), async () => {
+      const prev = syncCode;
       syncCode = code;
       try {
         await api('get_profile');
         store.set('trek_sync_code', code);
         location.reload();
       } catch (err) {
-        syncCode = null;
-        toast('Неверный код', 'err');
+        syncCode = prev;
+        toast('Код не подошёл', 'err');
       }
     });
   }
-  $('#sync-btn').addEventListener('click', doLogin);
-  $('#sync-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+  if ($('#sync-btn')) $('#sync-btn').addEventListener('click', doLogin);
+  if ($('#sync-input')) {
+    $('#sync-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+    $('#sync-input').addEventListener('input', (e) => {
+      // мягкое форматирование XXXX-XXXX
+      const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+      e.target.value = v.length > 4 ? v.slice(0, 4) + '-' + v.slice(4) : v;
+    });
+  }
 
-  // ---------- Старт ----------
-  // Навигация подключена выше и работает независимо от сети.
+  /* ============================================================
+     17. Загрузка и старт
+     ============================================================ */
+  async function loadAll() {
+    const results = await Promise.all([
+      apiRetry('get_profile'),
+      apiRetry('get_workouts', {}),
+      apiRetry('get_weight_log')
+    ]);
+    state.profile = (results[0] && results[0].profile) || null;
+    state.workouts = (results[1] && results[1].workouts) || [];
+    setWeights(results[2] && results[2].entries);
+    markPRs();
+  }
+
+  initChartDefaults();
+
   if (!isTelegram && !syncCode) {
     $('#auth').classList.remove('hidden');
     return;
   }
 
   $('#shell').classList.remove('hidden');
+  buildExerciseSelect();
   if (!isTelegram) $('#logout-btn').classList.remove('hidden');
 
   let startTab = 'home';
   try { startTab = sessionStorage.getItem('trek_tab') || 'home'; } catch (_) {}
   showTab(startTab);
 
-  loadAll().catch((err) => {
+  loadAll().then(() => {
+    renderTab(state.tab);
+    const p = state.profile;
+    if (p) { $('#p-weight').value = p.weight_kg != null ? p.weight_kg : ''; }
+  }).catch((err) => {
     console.error(err);
-    toast('Ошибка загрузки: ' + err.message, 'err');
+    toast('Не удалось загрузить данные: ' + err.message, 'err');
   });
 })();
 </script>
