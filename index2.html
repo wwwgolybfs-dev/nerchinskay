@@ -375,7 +375,8 @@ document.getElementById('weight-form').addEventListener('submit', async (e) => {
   } else {
     // Если мы в Телеграме или уже ввели код — показываем интерфейс
     document.querySelector('.tabs').style.display = 'flex';
-    document.querySelector('.panel.active').classList.add('active');
+    const firstPanel = document.querySelector('.panel');
+    if (firstPanel) firstPanel.classList.add('active');
     
     if (!isTelegram) {
       document.getElementById('logout-btn').style.display = 'block'; // Показываем кнопку выхода для веба
