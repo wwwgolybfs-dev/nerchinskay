@@ -17,12 +17,10 @@
   }
   h1 { font-size: 20px; margin: 0 0 4px; }
   .sub { font-size: 13px; opacity: .6; margin-bottom: 16px; }
-  .tabs {
-    display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;
-  }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
   .tab {
     flex: 0 0 auto; padding: 8px 14px; border-radius: 20px; border: none;
-    background: #2a2a2a; color: #ccc; font-size: 13px; cursor: pointer;
+    background: #2a2a2a; color: #ccc; font-size: 13px; cursor: pointer; transition: 0.2s;
   }
   .tab.active { background: var(--tg-theme-button-color, #2ea6ff); color: #fff; font-weight: 600; }
   .panel { display: none; }
@@ -36,21 +34,16 @@
     padding: 12px; border-radius: 10px; border: none;
     background: var(--tg-theme-button-color, #2ea6ff);
     color: var(--tg-theme-button-text-color, #fff);
-    font-size: 15px; font-weight: 600; cursor: pointer;
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s;
   }
   button:disabled { opacity: .5; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-  li {
-    padding: 12px; border-radius: 10px; background: #222;
-    display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
-  }
+  li { padding: 12px; border-radius: 10px; background: #222; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .li-main { font-size: 15px; }
   .li-sub { font-size: 12px; opacity: .6; margin-top: 2px; }
   .hint { font-size: 12px; opacity: .6; margin-top: -8px; margin-bottom: 12px; }
-  .calc-card {
-    background: #222; border-radius: 12px; padding: 14px; margin-bottom: 10px;
-  }
+  .calc-card { background: #222; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
   .calc-card h3 { margin: 0 0 6px; font-size: 15px; }
   .calc-card .big { font-size: 22px; font-weight: 700; color: #7dd3fc; }
   .calc-card .small { font-size: 12px; opacity: .6; margin-top: 4px; }
@@ -58,8 +51,13 @@
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
     background: #333; color: #fff; padding: 10px 18px; border-radius: 20px;
     font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 99;
+    white-space: nowrap;
   }
   .toast.show { opacity: 1; }
+  .auth-box { margin-top: 20px; background: #222; padding: 20px; border-radius: 12px; }
+  .auth-box h2 { margin-top: 0; }
+  .auth-box input { margin-bottom: 10px; text-transform: uppercase; }
+  .auth-box button { width: 100%; }
 </style>
 </head>
 <body>
@@ -67,7 +65,7 @@
 <h1>🏋️ Trek Fit</h1>
 <div class="sub" id="greeting">Загрузка...</div>
 
-<div class="tabs">
+<div class="tabs" style="display: none;">
   <button class="tab active" data-panel="workouts">Тренировки</button>
   <button class="tab" data-panel="weight">Вес и жир</button>
   <button class="tab" data-panel="calc">Калькуляторы</button>
@@ -75,7 +73,7 @@
 </div>
 
 <!-- ================= ТРЕНИРОВКИ ================= -->
-<div class="panel active" id="panel-workouts">
+<div class="panel" id="panel-workouts">
   <form id="workout-form">
     <input name="exercise" placeholder="Упражнение (напр. подъём на бицепс)" required>
     <select name="muscle_group" required>
@@ -112,7 +110,7 @@
     <input name="weight_kg" type="number" step="0.1" placeholder="Вес (кг)" required>
     <div class="row">
       <input name="body_fat_percent" type="number" step="0.1" placeholder="% жира">
-      <input name="muscle_mass_kg" type="number" step="0.1" placeholder="Мышечная масса (кг)">
+      <input name="muscle_mass_kg" type="number" step="0.1" placeholder="Мышцы (кг)">
     </div>
     <button type="submit">Записать</button>
   </form>
@@ -130,12 +128,12 @@
   <div class="calc-card">
     <h3>⚡ Креатин</h3>
     <div class="big">3–5 г/день</div>
-    <div class="small">Каждый день, независимо от тренировки. Форма — моногидрат.</div>
+    <div class="small">Каждый день. Форма — моногидрат.</div>
   </div>
   <div class="calc-card">
     <h3>💧 Вода</h3>
     <div class="big" id="water-value">— л</div>
-    <div class="small">Ориентир: 30–35 мл на кг веса. При креатине пить больше.</div>
+    <div class="small">Ориентир: 30–35 мл на кг веса.</div>
   </div>
 </div>
 
@@ -160,12 +158,19 @@
     </select>
     <button type="submit">Сохранить профиль</button>
   </form>
-  <div class="hint">Вес из профиля используется в калькуляторах.</div>
+  
+  <div style="margin-top:20px; padding-top:20px; border-top:1px solid #333;">
+    <div class="hint">Код для входа на сайте (вне Телеграма):</div>
+    <div id="sync-code-display" style="font-size:24px; font-weight:bold; color:#7dd3fc; margin:10px 0;">Не создан</div>
+    <button type="button" id="gen-code-btn" style="background:#444; margin-bottom: 10px;">Сгенерировать код</button>
+    <button type="button" id="logout-btn" style="background:#ff4444; display:none;">Выйти из аккаунта</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+// --- 1. ИНИЦИАЛИЗАЦИЯ ---
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
@@ -174,10 +179,11 @@ const SUPABASE_URL = 'https://xxauwkymufehmoprmhay.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ABzZaqdreTP8pe6L3fMFRA_kYo6J81W';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const isTelegram = !!tg.initData;
 const initData = tg.initData;
-const userId = tg.initDataUnsafe?.user?.id;
-const toastEl = document.getElementById('toast');
+let syncCode = localStorage.getItem('trek_sync_code');
 
+const toastEl = document.getElementById('toast');
 let profile = null;
 
 function toast(msg) {
@@ -186,58 +192,17 @@ function toast(msg) {
   setTimeout(() => toastEl.classList.remove('show'), 1800);
 }
 
+// --- 2. API ФУНКЦИЯ ---
 async function api(action, payload = {}) {
   const { data, error } = await supabaseClient.functions.invoke('telegram-api', {
-    body: { initData, action, payload },
+    body: { initData, syncCode, action, payload },
   });
   if (error) throw new Error(error.message || 'Ошибка запроса');
   if (data?.error) throw new Error(data.error);
   return data;
 }
 
-// ---------- Табы ----------
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
-  });
-});
-
-// ---------- Профиль ----------
-async function loadProfile() {
-  const { profile: p } = await api('get_profile');
-  profile = p;
-  if (p.weight_kg) {
-    document.querySelector('#profile-form [name=weight_kg]').value = p.weight_kg;
-    document.querySelector('#profile-form [name=height_cm]').value = p.height_cm || '';
-    document.querySelector('#profile-form [name=age]').value = p.age || '';
-    document.querySelector('#profile-form [name=gender]').value = p.gender || 'male';
-    document.querySelector('#profile-form [name=goal]').value = p.goal || 'mass';
-  }
-  updateCalc();
-  const name = tg.initDataUnsafe?.user?.first_name || 'друг';
-  document.getElementById('greeting').textContent = `Привет, ${name}. Твой дневник тренировок и состава тела.`;
-}
-
-document.getElementById('profile-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  try {
-    await api('upsert_profile', {
-      weight_kg: fd.get('weight_kg') ? Number(fd.get('weight_kg')) : null,
-      height_cm: fd.get('height_cm') ? Number(fd.get('height_cm')) : null,
-      age: fd.get('age') ? Number(fd.get('age')) : null,
-      gender: fd.get('gender'),
-      goal: fd.get('goal'),
-    });
-    await loadProfile();
-    toast('Профиль сохранён');
-  } catch (err) { toast(err.message); }
-});
-
-// ---------- Калькуляторы ----------
+// --- 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function updateCalc() {
   const w = Number(profile?.weight_kg) || 0;
   if (!w) {
@@ -246,45 +211,33 @@ function updateCalc() {
     document.getElementById('water-value').textContent = '— л';
     return;
   }
-  const low = Math.round(w * 1.6);
-  const high = Math.round(w * 2.2);
-  document.getElementById('protein-value').textContent = `${low}–${high} г/день`;
+  document.getElementById('protein-value').textContent = `${Math.round(w * 1.6)}–${Math.round(w * 2.2)} г/день`;
   document.getElementById('protein-range').textContent = `При весе ${w} кг`;
   document.getElementById('water-value').textContent = `${(w * 0.033).toFixed(1)} л`;
 }
 
-// ---------- Вес ----------
-async function loadWeightLog() {
-  const { entries } = await api('get_weight_log');
-  const ul = document.getElementById('weight-list');
-  if (!entries.length) { ul.innerHTML = '<li class="li-sub">Пока нет записей</li>'; return; }
-  ul.innerHTML = entries.map(e => `
-    <li>
-      <div>
-        <div class="li-main">${e.weight_kg} кг</div>
-        <div class="li-sub">${e.body_fat_percent ? 'Жир: ' + e.body_fat_percent + '%' : ''} ${e.muscle_mass_kg ? '· Мышцы: ' + e.muscle_mass_kg + ' кг' : ''}</div>
-      </div>
-      <div class="li-sub">${new Date(e.logged_at).toLocaleDateString('ru-RU')}</div>
-    </li>
-  `).join('');
+// --- 4. ЗАГРУЗКА ДАННЫХ ---
+async function loadProfile() {
+  const { profile: p } = await api('get_profile');
+  profile = p;
+  
+  if (p.weight_kg) {
+    document.querySelector('#profile-form [name=weight_kg]').value = p.weight_kg;
+    document.querySelector('#profile-form [name=height_cm]').value = p.height_cm || '';
+    document.querySelector('#profile-form [name=age]').value = p.age || '';
+    document.querySelector('#profile-form [name=gender]').value = p.gender || 'male';
+    document.querySelector('#profile-form [name=goal]').value = p.goal || 'mass';
+  }
+  
+  if (p.sync_code) {
+    document.getElementById('sync-code-display').textContent = p.sync_code;
+  }
+  
+  updateCalc();
+  const name = tg.initDataUnsafe?.user?.first_name || 'друг';
+  document.getElementById('greeting').textContent = `Привет, ${name}. Твой дневник.`;
 }
 
-document.getElementById('weight-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  try {
-    await api('add_weight', {
-      weight_kg: Number(fd.get('weight_kg')),
-      body_fat_percent: fd.get('body_fat_percent') ? Number(fd.get('body_fat_percent')) : null,
-      muscle_mass_kg: fd.get('muscle_mass_kg') ? Number(fd.get('muscle_mass_kg')) : null,
-    });
-    e.target.reset();
-    await loadWeightLog();
-    toast('Запись добавлена');
-  } catch (err) { toast(err.message); }
-});
-
-// ---------- Тренировки ----------
 async function loadWorkouts() {
   const filter = document.getElementById('workout-filter').value;
   const { workouts } = await api('get_workouts', filter ? { muscle_group: filter } : {});
@@ -302,6 +255,60 @@ async function loadWorkouts() {
   `).join('');
 }
 
+async function loadWeightLog() {
+  const { entries } = await api('get_weight_log');
+  const ul = document.getElementById('weight-list');
+  if (!entries.length) { ul.innerHTML = '<li class="li-sub">Пока нет записей</li>'; return; }
+  ul.innerHTML = entries.map(e => `
+    <li>
+      <div>
+        <div class="li-main">${e.weight_kg} кг</div>
+        <div class="li-sub">${e.body_fat_percent ? 'Жир: ' + e.body_fat_percent + '%' : ''} ${e.muscle_mass_kg ? '· Мышцы: ' + e.muscle_mass_kg + ' кг' : ''}</div>
+      </div>
+      <div class="li-sub">${new Date(e.logged_at).toLocaleDateString('ru-RU')}</div>
+    </li>
+  `).join('');
+}
+
+// --- 5. ОБРАБОТЧИКИ ---
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+  });
+});
+
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  try {
+    await api('upsert_profile', {
+      weight_kg: fd.get('weight_kg') ? Number(fd.get('weight_kg')) : null,
+      height_cm: fd.get('height_cm') ? Number(fd.get('height_cm')) : null,
+      age: fd.get('age') ? Number(fd.get('age')) : null,
+      gender: fd.get('gender'),
+      goal: fd.get('goal'),
+    });
+    await loadProfile();
+    toast('Профиль сохранён');
+  } catch (err) { toast(err.message); }
+});
+
+document.getElementById('gen-code-btn')?.addEventListener('click', async () => {
+  try {
+    const { sync_code } = await api('generate_sync_code');
+    document.getElementById('sync-code-display').textContent = sync_code;
+    toast('Код создан! Запиши его.');
+  } catch (err) { toast(err.message); }
+});
+
+document.getElementById('logout-btn')?.addEventListener('click', () => {
+  localStorage.removeItem('trek_sync_code');
+  location.reload();
+});
+
 document.getElementById('workout-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
@@ -318,21 +325,69 @@ document.getElementById('workout-form').addEventListener('submit', async (e) => 
     toast('Подход записан');
   } catch (err) { toast(err.message); }
 });
-
 document.getElementById('workout-filter').addEventListener('change', loadWorkouts);
 
-// ---------- Старт ----------
-(async function init() {
-  if (!userId || !initData) {
-    document.getElementById('greeting').textContent = 'Открой это приложение через Telegram-бота.';
-    return;
-  }
+document.getElementById('weight-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
   try {
-    await loadProfile();
-    await loadWorkouts();
+    await api('add_weight', {
+      weight_kg: Number(fd.get('weight_kg')),
+      body_fat_percent: fd.get('body_fat_percent') ? Number(fd.get('body_fat_percent')) : null,
+      muscle_mass_kg: fd.get('muscle_mass_kg') ? Number(fd.get('muscle_mass_kg')) : null,
+    });
+    e.target.reset();
     await loadWeightLog();
-  } catch (err) {
-    toast('Ошибка загрузки: ' + err.message);
+    toast('Запись добавлена');
+  } catch (err) { toast(err.message); }
+});
+
+// --- 6. ГЛАВНАЯ ИНИЦИАЛИЗАЦИЯ (СТАРТ) ---
+(async function init() {
+  // Если мы на сайте и нет кода — показываем форму входа
+  if (!isTelegram && !syncCode) {
+    document.getElementById('greeting').innerHTML = `
+      <div class="auth-box">
+        <h2 style="margin-top:0">Вход на сайт</h2>
+        <p style="font-size:14px; opacity:0.8;">Введи код синхронизации, который ты сгенерировал в Телеграм-боте.</p>
+        <input id="sync-input" placeholder="Например, X7F9-A2B4">
+        <button id="sync-btn">Войти</button>
+      </div>
+    `;
+    
+    document.getElementById('sync-btn').onclick = async () => {
+      const code = document.getElementById('sync-input').value.trim().toUpperCase();
+      if (!code) return;
+      document.getElementById('sync-btn').textContent = 'Проверка...';
+      try {
+        localStorage.setItem('trek_sync_code', code);
+        syncCode = code;
+        await api('get_profile'); // Проверяем, существует ли такой код
+        location.reload(); // Если ошибки нет — перезагружаем страницу
+      } catch (e) {
+        localStorage.removeItem('trek_sync_code');
+        syncCode = null;
+        document.getElementById('sync-btn').textContent = 'Войти';
+        toast('Неверный код');
+      }
+    };
+    
+  } else {
+    // Если мы в Телеграме или уже ввели код — показываем интерфейс
+    document.querySelector('.tabs').style.display = 'flex';
+    document.querySelector('.panel.active').classList.add('active');
+    
+    if (!isTelegram) {
+      document.getElementById('logout-btn').style.display = 'block'; // Показываем кнопку выхода для веба
+    }
+    
+    try {
+      await loadProfile();
+      await loadWorkouts();
+      await loadWeightLog();
+    } catch (err) {
+      toast('Ошибка загрузки: ' + err.message);
+    }
   }
 })();
 </script>
