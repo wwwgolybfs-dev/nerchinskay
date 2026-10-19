@@ -172,7 +172,7 @@ tg.expand();
 
 const SUPABASE_URL = 'https://xxauwkymufehmoprmhay.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ABzZaqdreTP8pe6L3fMFRA_kYo6J81W';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const initData = tg.initData;
 const userId = tg.initDataUnsafe?.user?.id;
@@ -187,7 +187,7 @@ function toast(msg) {
 }
 
 async function api(action, payload = {}) {
-  const { data, error } = await supabase.functions.invoke('telegram-api', {
+  const { data, error } = await supabaseClient.functions.invoke('telegram-api', {
     body: { initData, action, payload },
   });
   if (error) throw new Error(error.message || 'Ошибка запроса');
