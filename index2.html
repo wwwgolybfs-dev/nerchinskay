@@ -11,7 +11,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <!-- Единственный источник стилей. При обновлении style.css меняй ?v= , чтобы Telegram сбросил кэш -->
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -42,6 +42,7 @@
     <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 5 5 10-11"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
   </defs>
 </svg>
 
@@ -89,8 +90,8 @@
       <div class="brand-name">Trek<span>Fit</span></div>
     </div>
     <div class="topbar-right">
-      <span class="tag" id="top-streak"><svg style="width:12px;height:12px"><use href="#i-flame"/></svg><span>0</span></span>
-      <div class="avatar" id="top-avatar">?</div>
+      <span class="tag" id="top-streak" title="Дней подряд"><svg style="width:12px;height:12px"><use href="#i-flame"/></svg><span>0</span></span>
+      <div class="avatar" id="top-avatar" data-goto="profile" role="button" tabindex="0">?</div>
     </div>
   </header>
 
@@ -284,7 +285,7 @@
               </div>
             </div>
 
-            <div class="eyebrow">История</div>
+            <div class="eyebrow">История <span class="sub" style="text-transform:none;letter-spacing:0;font-weight:500">нажми на запись для повтора</span></div>
             <div class="search" style="margin-bottom:8px">
               <svg><use href="#i-search"/></svg>
               <input id="workout-search" type="search" placeholder="Поиск по упражнению" autocomplete="off" aria-label="Поиск по упражнению">
@@ -427,7 +428,7 @@
               </div>
             </div>
             <div class="kpi-value num" id="c-rm">—</div>
-            <div class="kpi-foot">оценка 1ПМ по последнему подходу из истории</div>
+            <div class="kpi-foot">оценка 1ПМ по введённым данным</div>
           </div>
 
           <div class="card">
@@ -502,7 +503,7 @@
               <button class="btn danger hidden" id="logout-btn" type="button" style="margin-top:8px"><svg><use href="#i-logout"/></svg>Выйти из аккаунта</button>
             </div>
 
-            <div class="sub" style="margin-top:14px; text-align:center">Trek Fit · сборка 3.0</div>
+            <div class="sub" style="margin-top:14px; text-align:center">Trek Fit · сборка 3.1</div>
           </div>
         </div>
       </section>
@@ -518,6 +519,15 @@
     <button class="nav-btn" data-nav="profile" type="button"><svg class="ic"><use href="#i-user"/></svg><span>Профиль</span></button>
   </nav>
 </div>
+
+<!-- Плавающий таймер отдыха (нажмите для +30 сек, крестик для сброса) -->
+<button class="rest-timer-fab hidden" id="rest-timer" type="button" title="Нажми для +30 сек">
+  <svg style="width:15px;height:15px"><use href="#i-clock"/></svg>
+  <span class="num" id="rest-timer-val">01:30</span>
+  <span class="row-action" id="rest-timer-close" role="button" aria-label="Сбросить таймер" style="margin-left:2px;display:inline-flex">
+    <svg style="width:14px;height:14px"><use href="#i-close"/></svg>
+  </span>
+</button>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -542,11 +552,10 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
     del(k) { try { localStorage.removeItem(k); } catch (_) {} }
   };
-  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const round = (v, d) => { const p = Math.pow(10, d || 0); return Math.round(v * p) / p; };
 
   /* ============================================================
-     1. Telegram
+     1. Telegram + Haptic Feedback
      ============================================================ */
   const tg = (window.Telegram && window.Telegram.WebApp) || null;
   try { tg && tg.ready(); tg && tg.expand(); } catch (_) {}
@@ -554,6 +563,19 @@
     tg && tg.setHeaderColor && tg.setHeaderColor('#080b12');
     tg && tg.setBackgroundColor && tg.setBackgroundColor('#080b12');
   } catch (_) {}
+
+  function haptic(type) {
+    try {
+      if (!tg || !tg.HapticFeedback) return;
+      if (type === 'ok' || type === 'err') {
+        tg.HapticFeedback.notificationOccurred(type === 'ok' ? 'success' : 'error');
+      } else if (type === 'select') {
+        tg.HapticFeedback.selectionChanged();
+      } else {
+        tg.HapticFeedback.impactOccurred(type || 'light');
+      }
+    } catch (_) {}
+  }
 
   const initData = (tg && tg.initData) || '';
   const isTelegram = !!initData;
@@ -628,11 +650,9 @@
     if (typeof v === 'number') return new Date(v);
     if (!v) return new Date(NaN);
     const s = String(v).trim();
-    // "2026-10-19 21:30:00" / "2026-10-19T21:30:00" без зоны — считаем локальным временем
     const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/);
     if (m) return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
-    const d = new Date(s);
-    return d;
+    return new Date(s);
   }
 
   const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
@@ -676,7 +696,8 @@
 
   function tdee(p) {
     if (!p) return null;
-    const w = num(p.weight_kg), h = num(p.height_cm), a = num(p.age);
+    const w = num(p.weight_kg) || currentWeight();
+    const h = num(p.height_cm), a = num(p.age);
     if (!w || !h || !a) return null;
     const base = 10 * w + 6.25 * h - 5 * a + (p.gender === 'female' ? -161 : 5);
     return Math.round(base * 1.55);
@@ -742,7 +763,6 @@
     const today = startOfDay(new Date());
     for (let i = n - 1; i >= 0; i--) {
       const anchor = addDays(today, -7 * i);
-      // неделя начинается с понедельника
       const dow = (anchor.getDay() + 6) % 7;
       const start = addDays(anchor, -dow);
       const end = addDays(start, 6);
@@ -773,8 +793,14 @@
     });
   }
 
+  function findLastForExercise(name) {
+    if (!name) return null;
+    const key = String(name).trim().toLowerCase();
+    const sorted = state.workouts.slice().sort((a, b) => parseDate(b.logged_at) - parseDate(a.logged_at));
+    return sorted.find(w => String(w.exercise || '').trim().toLowerCase() === key) || null;
+  }
+
   function weightSeries(range) {
-    // ascending
     let arr = state.weights.slice().sort((a, b) => parseDate(a.logged_at) - parseDate(b.logged_at));
     if (range && range !== 'all') {
       const since = startOfDay(addDays(new Date(), -(Number(range) - 1)));
@@ -802,7 +828,7 @@
   }
 
   /* ============================================================
-     6. Состояние
+     6. Состояние и таймер отдыха
      ============================================================ */
   const state = {
     profile: null,
@@ -815,6 +841,53 @@
   };
   const charts = { home: null, weight: null, volume: null };
 
+  let restInterval = null;
+  let restEndsAt = 0;
+
+  function startRestTimer(seconds) {
+    const btn = $('#rest-timer');
+    const valEl = $('#rest-timer-val');
+    if (!btn || !valEl) return;
+    restEndsAt = Date.now() + (seconds || 90) * 1000;
+    btn.classList.remove('hidden');
+
+    function tick() {
+      const rem = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+      const m = String(Math.floor(rem / 60)).padStart(2, '0');
+      const s = String(rem % 60).padStart(2, '0');
+      valEl.textContent = m + ':' + s;
+      if (rem <= 0) {
+        stopRestTimer();
+        haptic('ok');
+        toast('Отдых окончен — пора в подход!', 'ok');
+      }
+    }
+    clearInterval(restInterval);
+    tick();
+    restInterval = setInterval(tick, 500);
+  }
+
+  function stopRestTimer() {
+    clearInterval(restInterval);
+    restInterval = null;
+    const btn = $('#rest-timer');
+    if (btn) btn.classList.add('hidden');
+  }
+
+  if ($('#rest-timer')) {
+    $('#rest-timer').addEventListener('click', (e) => {
+      if (e.target.closest('#rest-timer-close')) {
+        e.stopPropagation();
+        haptic('light');
+        stopRestTimer();
+        return;
+      }
+      restEndsAt += 30000;
+      haptic('select');
+      toast('+30 секунд отдыха');
+    });
+  }
+
   /* ============================================================
      7. Уведомления, спиннеры
      ============================================================ */
@@ -823,6 +896,7 @@
     const el = $('#toast');
     el.textContent = msg;
     el.className = 'toast show ' + (type || '');
+    if (type === 'ok' || type === 'err') haptic(type);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
   }
@@ -870,8 +944,6 @@
     if (charts[key]) { try { charts[key].destroy(); } catch (_) {} charts[key] = null; }
   }
 
-  // Chart.js считает масштабы по размеру контейнера: после показа панели
-  // пересчитываем размер и обновляем график без анимации.
   function mountChart(key, ctx, cfg) {
     let chart;
     try { chart = new Chart(ctx, cfg); } catch (e) { console.error('chart', e); return; }
@@ -1038,7 +1110,6 @@
      9. Рендер: обзор
      ============================================================ */
   function goalGood(diff) {
-    // true — движение к цели, false — против цели, null — нейтрально
     const goal = (state.profile && state.profile.goal) || 'maintain';
     if (Math.abs(diff) < 0.05) return null;
     if (goal === 'mass') return diff > 0;
@@ -1052,7 +1123,7 @@
     const balance = muscleBalance(30);
     const sessionsAll = sessions();
     const today = sessionsAll.find(s => sameDay(s.date, new Date()));
-    const name = (tgUser && tgUser.first_name) || (isTelegram ? 'атлет' : 'атлет');
+    const name = (tgUser && tgUser.first_name) || 'Атлет';
 
     // KPI
     $('#st-weight').innerHTML = w ? nf1.format(w) + ' <small>кг</small>' : '—';
@@ -1100,7 +1171,7 @@
     // Heatmap
     renderHeatmap();
 
-    // Графики: сначала разметка, потом отрисовка
+    // Графики
     const wrap = $('#home-chart-wrap');
     const hasWeight = weightSeries(state.range.home).length >= 2;
     destroyChart('home');
@@ -1133,7 +1204,7 @@
     if (!el) return;
     const weeks = 12;
     const today = startOfDay(new Date());
-    const dow = (today.getDay() + 6) % 7; // 0 = понедельник
+    const dow = (today.getDay() + 6) % 7;
     const start = addDays(today, -(weeks * 7 - 1) - (6 - dow));
     const counts = new Map();
     state.workouts.forEach(w => {
@@ -1178,7 +1249,7 @@
     if (sets) parts.push(sets + ' подх');
     const load = weight && reps ? (weight * reps * (sets || 1)) : 0;
     const pr = w._pr ? '<span class="tag pr">PR</span>' : '';
-    return '<div class="set-row">' +
+    return '<div class="set-row" data-repeat-ex="' + esc(w.exercise || '') + '" data-repeat-group="' + esc(g || 'chest') + '" data-repeat-w="' + (weight || '') + '" data-repeat-r="' + (reps || '') + '" data-repeat-s="' + (sets || 3) + '" style="cursor:pointer" title="Нажми, чтобы скопировать в форму">' +
       '<div>' +
         '<div class="set-name">' + esc(w.exercise || 'Без названия') + '</div>' +
         '<div class="set-sub">' +
@@ -1192,14 +1263,12 @@
   }
 
   function renderWorkouts() {
-    // статистика 30 дней
     const since = startOfDay(addDays(new Date(), -29));
     const recent = state.workouts.filter(w => parseDate(w.logged_at) >= since);
     $('#ws-count').textContent = recent.length;
     $('#ws-sets').textContent = recent.reduce((s, w) => s + setCount(w), 0);
     $('#ws-tonnage').textContent = nf.format(round(recent.reduce((s, w) => s + tonnage(w), 0), 0));
 
-    // фильтры
     let list = state.workouts.filter(w => !state.filter || w.muscle_group === state.filter);
     if (state.query) {
       const q = state.query.toLowerCase();
@@ -1224,6 +1293,12 @@
     $('#w-sub').textContent = w
       ? 'Сейчас ' + nf1.format(w) + ' кг' + (arr.length > 1 ? ' · ' + arr.length + ' замеров' : '')
       : 'Добавь первый замер';
+
+    // Если поле веса пустое и не в фокусе — подскажем последний вес в placeholder
+    const bwInput = $('#b-weight');
+    if (bwInput && w && document.activeElement !== bwInput) {
+      bwInput.placeholder = String(w);
+    }
 
     const rate = weekRate();
     if (rate) {
@@ -1309,7 +1384,10 @@
     // 1ПМ
     const lastSet = state.workouts.find(x => num(x.weight_kg) && num(x.reps));
     const rmW = $('#rm-weight'), rmR = $('#rm-reps');
-    if (rmW && !rmW.value && lastSet) { rmW.value = num(lastSet.weight_kg); rmR.value = num(lastSet.reps); }
+    if (rmW && !rmW.value && lastSet && document.activeElement !== rmW && document.activeElement !== rmR) {
+      rmW.value = num(lastSet.weight_kg);
+      rmR.value = num(lastSet.reps);
+    }
     const rw = num(rmW && rmW.value), rr = num(rmR && rmR.value);
     const rm = e1rm(rw, rr);
     $('#c-rm').innerHTML = rm ? Math.round(rm) + ' <small>кг</small>' : '—';
@@ -1333,8 +1411,10 @@
   function renderProfile() {
     const p = state.profile || {};
     const f = $('#profile-form');
-    if (f) {
-      f.weight_kg.value = p.weight_kg != null ? p.weight_kg : '';
+    // Не перезаписываем значения, если пользователь прямо сейчас печатает в форме
+    const isEditing = f && f.contains(document.activeElement);
+    if (f && !isEditing) {
+      f.weight_kg.value = p.weight_kg != null ? p.weight_kg : (currentWeight() || '');
       f.height_cm.value = p.height_cm != null ? p.height_cm : '';
       f.age.value = p.age != null ? p.age : '';
       f.gender.value = p.gender || 'male';
@@ -1355,10 +1435,11 @@
   };
 
   /* ============================================================
-     14. Навигация
+     14. Навигация и глобальные клики
      ============================================================ */
-  function showTab(name) {
+  function showTab(name, withHaptic) {
     if (!TITLES[name]) name = 'home';
+    if (withHaptic && state.tab !== name) haptic('select');
     state.tab = name;
     $$('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === name));
     $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
@@ -1381,32 +1462,59 @@
 
   document.addEventListener('click', (e) => {
     const nav = e.target.closest('[data-nav]');
-    if (nav) { e.preventDefault(); showTab(nav.dataset.nav); return; }
+    if (nav) { e.preventDefault(); showTab(nav.dataset.nav, true); return; }
 
     const go = e.target.closest('[data-goto]');
-    if (go) { e.preventDefault(); showTab(go.dataset.goto); return; }
+    if (go) { e.preventDefault(); showTab(go.dataset.goto, true); return; }
 
     const step = e.target.closest('[data-step]');
     if (step) {
       const input = document.getElementById(step.dataset.for);
       if (!input) return;
+      haptic('light');
       const delta = Number(step.dataset.step);
-      const cur = Number(input.value) || 0;
+      const cur = Number(input.value) || Number(input.placeholder) || 0;
       const next = Math.max(Number(input.min || 0) || 0, Math.min(Number(input.max || 999) || 999, cur + delta));
       input.value = round(next, 2);
       input.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    // Повтор упражнения по клику на строку истории
+    const rep = e.target.closest('[data-repeat-ex]');
+    if (rep) {
+      const exName = rep.dataset.repeatEx;
+      if (!exName) return;
+      haptic('select');
+      if (state.tab !== 'workouts') showTab('workouts', false);
+      const sel = $('#exercise-select');
+      if (sel) {
+        const hasOption = Array.from(sel.options).some(o => o.value === exName);
+        if (hasOption) {
+          sel.value = exName;
+        } else {
+          sel.value = OTHER;
+          $('#custom-exercise').value = exName;
+          $('#group-select').value = rep.dataset.repeatGroup || 'chest';
+        }
+        if (rep.dataset.repeatW !== '') $('#w-weight').value = rep.dataset.repeatW;
+        if (rep.dataset.repeatR !== '') $('#w-reps').value = rep.dataset.repeatR;
+        if (rep.dataset.repeatS !== '') $('#w-sets').value = rep.dataset.repeatS;
+        syncExerciseUI(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast('Подставлено: ' + exName);
+      }
     }
   });
 
   document.addEventListener('keydown', (e) => {
     const go = e.target.closest && e.target.closest('[data-goto]');
-    if (go && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showTab(go.dataset.goto); }
+    if (go && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showTab(go.dataset.goto, true); }
   });
 
   /* ============================================================
      15. Формы и контролы
      ============================================================ */
-  // Селект упражнений
   function buildExerciseSelect() {
     const sel = $('#exercise-select');
     if (!sel) return;
@@ -1419,28 +1527,54 @@
     html += '<option value="' + OTHER + '">Другое упражнение…</option>';
     sel.innerHTML = html;
     sel.value = EXERCISES.chest[0];
-    syncExerciseUI();
+    syncExerciseUI(true);
   }
 
-  function syncExerciseUI() {
+  function syncExerciseUI(autofill) {
     const sel = $('#exercise-select');
+    if (!sel) return;
     const custom = sel.value === OTHER;
     $('#custom-wrap').classList.toggle('hidden', !custom);
     $('#group-wrap').classList.toggle('hidden', !custom);
     $('#custom-exercise').required = custom;
+
+    const exName = custom ? $('#custom-exercise').value.trim() : sel.value;
+    const last = findLastForExercise(exName);
+
+    // Автоподстановка последнего веса и повторов при смене упражнения
+    if (autofill && last && !custom) {
+      if (num(last.weight_kg) != null) $('#w-weight').value = num(last.weight_kg);
+      if (num(last.reps) != null) $('#w-reps').value = num(last.reps);
+      if (num(last.sets) != null) $('#w-sets').value = num(last.sets);
+    }
+
     const hint = $('#form-hint');
     if (hint) {
       const w = num($('#w-weight').value), r = num($('#w-reps').value);
       const rm = e1rm(w, r);
-      hint.textContent = rm ? '≈ 1ПМ ' + Math.round(rm) + ' кг по этому подходу' : 'Вес и повторы можно оставить пустыми для упражнений с собственным весом';
+      const lastStr = last && (num(last.weight_kg) || num(last.reps))
+        ? 'Прошлый раз: ' + (num(last.weight_kg) ? nf1.format(num(last.weight_kg)) + ' кг × ' : '') + (num(last.reps) || 0) + ' повт'
+        : '';
+      if (rm && lastStr) {
+        hint.textContent = '≈ 1ПМ ' + Math.round(rm) + ' кг · ' + lastStr;
+      } else if (rm) {
+        hint.textContent = '≈ 1ПМ ' + Math.round(rm) + ' кг по этому подходу';
+      } else if (lastStr) {
+        hint.textContent = lastStr;
+      } else {
+        hint.textContent = 'Вес и повторы можно оставить пустыми для упражнений со своим весом';
+      }
     }
   }
 
   if ($('#exercise-select')) {
-    $('#exercise-select').addEventListener('change', syncExerciseUI);
-    ['w-weight', 'w-reps'].forEach(id => {
+    $('#exercise-select').addEventListener('change', () => {
+      haptic('select');
+      syncExerciseUI(true);
+    });
+    ['w-weight', 'w-reps', 'custom-exercise'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener('input', syncExerciseUI);
+      if (el) el.addEventListener('input', () => syncExerciseUI(false));
     });
   }
 
@@ -1470,11 +1604,11 @@
           const data = await api('get_workouts', {});
           state.workouts = data.workouts || [];
           markPRs();
-          $('#w-reps').value = '';
-          $('#custom-exercise').value = '';
           if (isOther) { $('#group-select').value = keepGroup; }
+          syncExerciseUI(false);
           renderWorkouts();
-          toast('Подход записан', 'ok');
+          startRestTimer(90);
+          toast('Подход записан · таймер 01:30', 'ok');
         } catch (err) { toast(err.message, 'err'); }
       });
     });
@@ -1538,6 +1672,7 @@
     chips.addEventListener('click', (e) => {
       const c = e.target.closest('.chip');
       if (!c) return;
+      haptic('select');
       state.filter = c.dataset.filter;
       $$('#workout-chips .chip').forEach(x => x.classList.toggle('active', x === c));
       renderWorkouts();
@@ -1561,6 +1696,7 @@
     box.addEventListener('click', (e) => {
       const b = e.target.closest('[data-range]');
       if (!b) return;
+      haptic('select');
       state.range[key] = b.dataset.range;
       $$('[data-range]', box).forEach(x => x.classList.toggle('active', x === b));
       if (key === 'home') {
@@ -1659,7 +1795,6 @@
   if ($('#sync-input')) {
     $('#sync-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
     $('#sync-input').addEventListener('input', (e) => {
-      // мягкое форматирование XXXX-XXXX
       const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
       e.target.value = v.length > 4 ? v.slice(0, 4) + '-' + v.slice(4) : v;
     });
@@ -1693,12 +1828,11 @@
 
   let startTab = 'home';
   try { startTab = sessionStorage.getItem('trek_tab') || 'home'; } catch (_) {}
-  showTab(startTab);
+  showTab(startTab, false);
 
   loadAll().then(() => {
+    syncExerciseUI(true);
     renderTab(state.tab);
-    const p = state.profile;
-    if (p) { $('#p-weight').value = p.weight_kg != null ? p.weight_kg : ''; }
   }).catch((err) => {
     console.error(err);
     toast('Не удалось загрузить данные: ' + err.message, 'err');
