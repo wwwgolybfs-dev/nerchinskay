@@ -150,6 +150,16 @@
             <button class="btn sm ghost" data-goto="workouts" type="button"><svg><use href="#i-plus"/></svg>Добавить подход</button>
             <button class="btn sm ghost" data-goto="weight" type="button"><svg><use href="#i-scale"/></svg>Добавить вес</button>
           </div>
+          
+          <!-- Утренний спортпит (чеклист на сегодня) -->
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button class="chip" id="chk-creatine" type="button" style="flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
+              <svg style="width:14px;height:14px"><use href="#i-check"/></svg><span>Креатин утром</span>
+            </button>
+            <button class="chip" id="chk-protein" type="button" style="flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
+              <svg style="width:14px;height:14px"><use href="#i-check"/></svg><span>Протеин утром</span>
+            </button>
+          </div>
         </div>
 
         <div class="eyebrow">Динамика веса
@@ -387,6 +397,15 @@
 
           <div class="card">
             <div class="card-head">
+              <div><h3>Спортпит утром</h3><div class="sub">Креатин и протеин</div></div>
+              <span class="tag"><svg style="width:13px;height:13px"><use href="#i-flame"/></svg></span>
+            </div>
+            <div class="kpi-value num" id="c-supps">—</div>
+            <div class="kpi-foot" id="c-supps-note">укажи вес в профиле</div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
               <div><h3>Вода</h3><div class="sub">30–35 мл на кг веса</div></div>
               <span class="tag"><svg style="width:13px;height:13px"><use href="#i-droplet"/></svg></span>
             </div>
@@ -503,7 +522,7 @@
               <button class="btn danger hidden" id="logout-btn" type="button" style="margin-top:8px"><svg><use href="#i-logout"/></svg>Выйти из аккаунта</button>
             </div>
 
-            <div class="sub" style="margin-top:14px; text-align:center">Trek Fit · сборка 3.1</div>
+            <div class="sub" style="margin-top:14px; text-align:center">Trek Fit · сборка 3.2</div>
           </div>
         </div>
       </section>
@@ -1156,6 +1175,15 @@
       : 'Запиши первый подход — начнём считать объём';
     $('#today-date').textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
 
+    // Чеклист утреннего спортпита
+    const todayKeyStr = dayKey(new Date());
+    const takenCr = store.get('supp_cr_' + todayKeyStr) === '1';
+    const takenPr = store.get('supp_pr_' + todayKeyStr) === '1';
+    const btnCr = $('#chk-creatine');
+    const btnPr = $('#chk-protein');
+    if (btnCr) btnCr.classList.toggle('active', takenCr);
+    if (btnPr) btnPr.classList.toggle('active', takenPr);
+
     // Баланс мышц
     const maxSets = balance.rows.reduce((m, r) => Math.max(m, r.sets), 0);
     $('#muscle-balance').innerHTML = balance.rows.map(r => {
@@ -1294,7 +1322,6 @@
       ? 'Сейчас ' + nf1.format(w) + ' кг' + (arr.length > 1 ? ' · ' + arr.length + ' замеров' : '')
       : 'Добавь первый замер';
 
-    // Если поле веса пустое и не в фокусе — подскажем последний вес в placeholder
     const bwInput = $('#b-weight');
     if (bwInput && w && document.activeElement !== bwInput) {
       bwInput.placeholder = String(w);
@@ -1358,17 +1385,32 @@
     const w = currentWeight();
     const p = state.profile || {};
 
+    // Норма белка
     $('#c-protein').innerHTML = w ? Math.round(w * 1.6) + '–' + Math.round(w * 2.2) + ' <small>г</small>' : '—';
     $('#c-protein-note').textContent = w ? 'при весе ' + nf1.format(w) + ' кг' : 'укажи вес в профиле';
 
+    // Спортпит утром: креатин и разовая порция белка
+    if (w) {
+      const creatineGrams = w > 90 ? 7 : (w < 65 ? 3 : 5);
+      const morningProtein = Math.round(w * 0.35);
+      $('#c-supps').innerHTML = creatineGrams + ' г <small>креатин</small> · ' + morningProtein + ' г <small>белок</small>';
+      $('#c-supps-note').textContent = 'Утром: ' + creatineGrams + ' г креатина + 1 скуп протеина (~' + morningProtein + ' г чистого белка)';
+    } else {
+      $('#c-supps').innerHTML = '5 г <small>креатин</small> · 30 г <small>белок</small>';
+      $('#c-supps-note').textContent = 'Стандартная порция (укажи вес для точного расчёта)';
+    }
+
+    // Вода
     $('#c-water').innerHTML = w ? nf1.format(w * 0.03) + '–' + nf1.format(w * 0.035) + ' <small>л</small>' : '—';
 
+    // Калории
     const t = tdee(p);
     const k = goalKcal(p);
     $('#c-tdee').innerHTML = k ? nf.format(k) + ' <small>ккал</small>' : '—';
     $('#c-tdee-note').textContent = !t ? 'нужны вес, рост и возраст'
       : 'BMR ≈ ' + nf.format(Math.round(t / 1.55)) + ' · норма с активностью 1,55';
 
+    // ИМТ
     if (w && num(p.height_cm)) {
       const h = num(p.height_cm) / 100;
       const bmi = w / (h * h);
@@ -1411,7 +1453,6 @@
   function renderProfile() {
     const p = state.profile || {};
     const f = $('#profile-form');
-    // Не перезаписываем значения, если пользователь прямо сейчас печатает в форме
     const isEditing = f && f.contains(document.activeElement);
     if (f && !isEditing) {
       f.weight_kg.value = p.weight_kg != null ? p.weight_kg : (currentWeight() || '');
@@ -1541,7 +1582,6 @@
     const exName = custom ? $('#custom-exercise').value.trim() : sel.value;
     const last = findLastForExercise(exName);
 
-    // Автоподстановка последнего веса и повторов при смене упражнения
     if (autofill && last && !custom) {
       if (num(last.weight_kg) != null) $('#w-weight').value = num(last.weight_kg);
       if (num(last.reps) != null) $('#w-reps').value = num(last.reps);
@@ -1578,6 +1618,28 @@
     });
   }
 
+  // Чеклист утреннего спортпита
+  [['#chk-creatine', 'cr', 'Креатин'], ['#chk-protein', 'pr', 'Протеин']].forEach(([btnId, code, label]) => {
+    const btn = $(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const todayK = dayKey(new Date());
+      const k = 'supp_' + code + '_' + todayK;
+      const isTaken = store.get(k) === '1';
+      if (isTaken) {
+        store.del(k);
+        btn.classList.remove('active');
+        haptic('light');
+        toast(label + ': отметка снята');
+      } else {
+        store.set(k, '1');
+        btn.classList.add('active');
+        haptic('ok');
+        toast(label + ' принят ✓', 'ok');
+      }
+    });
+  });
+
   // Добавить подход
   const wf = $('#workout-form');
   if (wf) {
@@ -1608,7 +1670,7 @@
           syncExerciseUI(false);
           renderWorkouts();
           startRestTimer(90);
-          toast('Подход записан · таймер 01:30', 'ok');
+          toast('Подход записан · отдых 01:30', 'ok');
         } catch (err) { toast(err.message, 'err'); }
       });
     });
