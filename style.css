@@ -165,6 +165,13 @@ canvas {
   -webkit-backdrop-filter: blur(12px);
 }
 
+/* Левая группа: гамбургер + бренд */
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -214,7 +221,7 @@ canvas {
 }
 
 .main {
-  padding-bottom: calc(84px + var(--safe-b));
+  padding-bottom: calc(86px + var(--safe-b));
 }
 .container {
   width: 100%;
@@ -233,49 +240,147 @@ canvas {
   display: block;
 }
 
-/* ---------- 4. Навигация ---------- */
-.bottomnav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  padding: 6px 6px calc(6px + var(--safe-b));
-  background: rgba(8, 11, 18, .92);
-  border-top: 1px solid var(--line);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
+/* ---------- 4. Навигация: боковой ящик (drawer) ---------- */
 
-.nav-btn {
-  position: relative;
+/* Гамбургер-кнопка (мобильный topbar) */
+.hamburger {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 3px;
-  padding: 7px 2px;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--r-xs);
+  transition: background .18s;
+}
+.hamburger:hover {
+  background: rgba(148, 163, 184, .08);
+}
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--muted);
+  transition: transform .22s, opacity .18s, background .18s;
+}
+/* Анимация гамбургера в «X» когда drawer открыт */
+.hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+  background: var(--accent);
+}
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+  background: var(--accent);
+}
+
+/* Оверлей */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, .52);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Боковая панель-ящик */
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 70;
+  width: 280px;
+  max-width: calc(100vw - 56px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px 14px 18px;
+  background: rgba(15, 20, 32, .94);
+  border-right: 1px solid var(--line);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transform: translateX(-100%);
+  transition: transform .28s cubic-bezier(.4, 0, .2, 1);
+  overscroll-behavior: contain;
+}
+.drawer.open {
+  transform: translateX(0);
+}
+
+.drawer .brand {
+  padding: 2px 8px 20px;
+}
+
+.drawer .nav-btn {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 11px;
+  padding: 11px 12px;
   border-radius: var(--r-sm);
-  color: var(--dim);
-  font-size: 10.5px;
+  color: var(--muted);
+  font-size: 14px;
   font-weight: 650;
   letter-spacing: .1px;
   transition: color .18s, background .18s;
 }
-.nav-btn .ic {
-  width: 21px;
-  height: 21px;
+.drawer .nav-btn .ic {
+  width: 20px;
+  height: 20px;
   transition: transform .22s cubic-bezier(.3, 1.5, .5, 1);
 }
-.nav-btn:active .ic {
+.drawer .nav-btn:active .ic {
   transform: scale(.9);
 }
-.nav-btn.active {
+.drawer .nav-btn:hover {
+  background: rgba(148, 163, 184, .07);
+  color: var(--text);
+}
+.drawer .nav-btn.active {
+  background: var(--accent-soft);
   color: var(--accent);
 }
-.nav-btn.active .ic {
+.drawer .nav-btn.active .ic {
   transform: translateY(-1px);
+}
+
+.drawer-foot {
+  margin-top: auto;
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.drawer .user-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 4px;
+}
+.drawer .user-name {
+  font-size: 12.5px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- 5. Типографика ---------- */
@@ -833,6 +938,13 @@ input[type="number"] {
 .btn + .btn {
   margin-top: 8px;
 }
+.row > .btn + .btn,
+.program-row .btn + .btn {
+  margin-top: 0;
+}
+.program-row .btn + .btn {
+  margin-left: 6px;
+}
 
 .icon-btn {
   display: grid;
@@ -974,7 +1086,7 @@ input[type="number"] {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(92px + var(--safe-b));
+  bottom: 28px;
   z-index: 90;
   max-width: calc(100vw - 32px);
   padding: 11px 16px;
@@ -1058,8 +1170,8 @@ input[type="number"] {
 .rest-timer-fab {
   position: fixed;
   right: 16px;
-  bottom: calc(76px + var(--safe-b));
-  z-index: 45;
+  bottom: calc(86px + var(--safe-b));
+  z-index: 55;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1106,11 +1218,18 @@ input[type="number"] {
   .chart-box {
     height: 240px;
   }
+  .nutrition-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* ---------- 21. Компьютер ---------- */
 @media (min-width: 980px) {
-  .topbar, .bottomnav, .rest-timer-fab {
+  /* На десктопе скрываем мобильный topbar, drawer и его оверлей */
+  .topbar,
+  .drawer,
+  .drawer-overlay,
+  .rest-timer-fab {
     display: none;
   }
 
@@ -1230,6 +1349,11 @@ input[type="number"] {
   .card:hover {
     border-color: var(--line-strong);
   }
+
+  /* Nutrition: 4-column grid on desktop */
+  .nutrition-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (min-width: 1320px) {
@@ -1250,7 +1374,7 @@ input[type="number"] {
 
 /* ---------- 23. Печать ---------- */
 @media print {
-  .sidebar, .topbar, .bottomnav, .toast, .auth, .rest-timer-fab {
+  .sidebar, .topbar, .drawer, .drawer-overlay, .toast, .auth, .rest-timer-fab {
     display: none !important;
   }
   body {
@@ -1287,4 +1411,681 @@ input[type="number"] {
 
 input[type="search"]::-webkit-search-cancel-button {
   -webkit-appearance: none;
+}
+
+/* ---------- 25. Панель питания (Nutrition) ---------- */
+
+/* Сетка быстрого добавления продуктов */
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* Карточка продукта */
+.food-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: border-color .18s, background .18s;
+}
+.food-card:hover {
+  border-color: var(--accent);
+}
+.food-card:active {
+  background: var(--accent-soft);
+}
+.food-card .food-emoji {
+  font-size: 24px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.food-card .food-info {
+  min-width: 0;
+}
+.food-card .food-name {
+  font-weight: 650;
+  font-size: 13px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.food-card .food-meta {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+
+/* Лог питания за день */
+.nutrition-log {
+  display: grid;
+  gap: 6px;
+}
+.nutrition-log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+}
+.nutrition-log-item .food-emoji {
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+.nutrition-log-item .log-name {
+  flex: 1;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nutrition-log-item .log-kcal {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Итоговая строка (kcal / белки / углеводы / жиры) */
+.nutrition-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, var(--accent-soft), rgba(99, 102, 241, .08));
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  text-align: center;
+}
+.nutrition-summary .ns-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nutrition-summary .ns-label {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.nutrition-summary .ns-value {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.5px;
+  line-height: 1.15;
+}
+.nutrition-summary .ns-value small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+/* Кольцевая диаграмма макронутриентов */
+.macro-ring {
+  position: relative;
+  height: 180px;
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+.macro-ring canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ---------- 26. Дизайн-улучшения ---------- */
+
+/* a) Цветовое кодирование мышечных групп на строках подходов */
+.set-row[data-group="chest"]     { border-left: 3px solid #f87171; }
+.set-row[data-group="back"]      { border-left: 3px solid #60a5fa; }
+.set-row[data-group="shoulders"] { border-left: 3px solid #a78bfa; }
+.set-row[data-group="legs"]      { border-left: 3px solid #34d399; }
+.set-row[data-group="biceps"]    { border-left: 3px solid #fbbf24; }
+.set-row[data-group="triceps"]   { border-left: 3px solid #fb923c; }
+.set-row[data-group="abs"]       { border-left: 3px solid #e879f9; }
+.set-row[data-group="cardio"]    { border-left: 3px solid #2dd4bf; }
+
+/* b) Анимация входа сессий */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.session { animation: slide-in .22s ease both; }
+.session:nth-child(2) { animation-delay: .04s; }
+.session:nth-child(3) { animation-delay: .08s; }
+.session:nth-child(4) { animation-delay: .12s; }
+.session:nth-child(5) { animation-delay: .16s; }
+
+/* c) Hover-эффект на KPI (только десктоп) */
+@media (min-width: 980px) {
+  .kpi {
+    transition: border-color .18s, transform .12s;
+  }
+  .kpi:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
+  }
+}
+
+/* ==========================================================================
+   27. Нижняя навигация (мобильная)
+   ========================================================================== */
+.bottomnav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  padding: 6px 6px calc(6px + var(--safe-b));
+  background: rgba(8, 11, 18, .92);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.nav-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 2px 9px;
+  border-radius: var(--r-sm);
+  color: var(--dim);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .1px;
+  transition: color .18s, background .18s;
+}
+.nav-btn .ic {
+  width: 21px;
+  height: 21px;
+  transition: transform .22s cubic-bezier(.3, 1.5, .5, 1);
+}
+.nav-btn:active .ic {
+  transform: scale(.9);
+}
+.nav-btn.active {
+  color: var(--accent);
+}
+.nav-btn.active .ic {
+  transform: translateY(-1px);
+}
+
+/* Индикатор-пилюля под активным пунктом */
+.nav-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: width .22s ease, opacity .22s ease;
+}
+.nav-btn.active::after {
+  width: 18px;
+  opacity: 1;
+}
+
+/* Красная точка непрочитанных уведомлений */
+.nav-btn .dot {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  margin-left: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bad);
+  box-shadow: 0 0 0 2px var(--bg);
+  display: none;
+}
+.nav-btn .dot.show {
+  display: block;
+}
+
+.sidebar .nav-btn .dot {
+  top: 50%;
+  left: auto;
+  right: 10px;
+  margin: -4px 0 0;
+}
+
+@media (min-width: 980px) {
+  .bottomnav {
+    display: none;
+  }
+}
+@media print {
+  .bottomnav {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   28. Цель по весу в сайдбаре
+   ========================================================================== */
+.goal-mini {
+  padding: 8px 4px 2px;
+  display: grid;
+  gap: 6px;
+}
+.goal-mini-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.goal-mini-top b {
+  color: var(--text);
+  font-weight: 750;
+}
+.goal-mini-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .16);
+  overflow: hidden;
+}
+.goal-mini-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), #7dd3fc);
+  transition: width .45s ease;
+}
+
+/* ==========================================================================
+   29. Уведомления
+   ========================================================================== */
+.notif-list {
+  display: grid;
+  gap: 8px;
+}
+.notif-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  align-items: flex-start;
+}
+.notif-item.unread {
+  border-color: rgba(45, 212, 191, .4);
+  background: var(--accent-soft);
+}
+.notif-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(45, 212, 191, .14);
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+.notif-ic svg {
+  width: 15px;
+  height: 15px;
+}
+.notif-body {
+  min-width: 0;
+  flex: 1;
+}
+.notif-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.notif-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   30. Рекорды
+   ========================================================================== */
+.pr-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  margin-bottom: 6px;
+}
+.pr-row + .pr-row {
+  margin-top: 0;
+}
+.pr-rank {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.pr-row .set-name {
+  font-size: 13px;
+  font-weight: 650;
+}
+.pr-row .set-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.pr-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.pr-val small {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: .3px;
+}
+
+/* ==========================================================================
+   31. Программы тренировок
+   ========================================================================== */
+.program-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+}
+.program-row.active {
+  border-color: rgba(45, 212, 191, .45);
+  background: var(--accent-soft);
+}
+.program-row .p-emoji {
+  font-size: 20px;
+  flex: 0 0 auto;
+}
+.program-row .p-body {
+  min-width: 0;
+  flex: 1;
+}
+.program-row .p-name {
+  font-weight: 700;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.program-row .p-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.program-row .btn {
+  flex: 0 0 auto;
+}
+
+/* ==========================================================================
+   32. Шторка (bottom sheet)
+   ========================================================================== */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, .62);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+.sheet-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sheet {
+  width: 100%;
+  max-width: 540px;
+  max-height: 88dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 18px 16px calc(18px + var(--safe-b));
+  transform: translateY(26px);
+  transition: transform .26s cubic-bezier(.3, 1.1, .4, 1);
+  box-shadow: var(--shadow-2);
+}
+.sheet-overlay.open .sheet {
+  transform: none;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sheet-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -.2px;
+}
+.sheet-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(148, 163, 184, .1);
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+.sheet-close svg {
+  width: 15px;
+  height: 15px;
+}
+body.sheet-open {
+  overflow: hidden;
+}
+@media (min-width: 640px) {
+  .sheet-overlay {
+    align-items: center;
+  }
+  .sheet {
+    border-radius: var(--r-lg);
+    transform: scale(.97);
+    padding: 20px;
+  }
+  .sheet-overlay.open .sheet {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   33. Режим активной тренировки
+   ========================================================================== */
+.wo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  margin-bottom: 8px;
+}
+.wo-item.done {
+  border-color: rgba(52, 211, 153, .4);
+  background: var(--good-soft);
+}
+.wo-item .wo-body {
+  min-width: 0;
+  flex: 1;
+}
+.wo-item .wo-name {
+  font-size: 13px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wo-item .wo-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.wo-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--accent);
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+.wo-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+/* Пресеты таймера отдыха */
+.timer-presets {
+  position: fixed;
+  right: 16px;
+  bottom: calc(100px + var(--safe-b));
+  z-index: 75;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(20, 27, 41, .97);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-2);
+}
+.timer-presets button {
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  background: rgba(148, 163, 184, .08);
+  font-variant-numeric: tabular-nums;
+}
+.timer-presets button:hover {
+  color: var(--text);
+  background: rgba(148, 163, 184, .16);
+}
+@media (min-width: 980px) {
+  .timer-presets {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   34. Тема «Энергия»
+   ========================================================================== */
+html[data-theme="energy"] {
+  --accent: #fb923c;
+  --accent-soft: rgba(251, 146, 60, .14);
+  --accent-2: #ef4444;
+}
+html[data-theme="energy"] body {
+  background:
+    radial-gradient(1100px 620px at 80% -10%, rgba(239, 68, 68, .18), transparent 60%),
+    radial-gradient(820px 480px at -6% 2%, rgba(251, 146, 60, .12), transparent 55%),
+    var(--bg);
+}
+html[data-theme="energy"] .brand-mark {
+  background: linear-gradient(150deg, #fb923c, #ef4444);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, .28);
+  color: #2a0e02;
+}
+html[data-theme="energy"] .avatar {
+  background: linear-gradient(140deg, #ef4444, #f97316);
+}
+html[data-theme="energy"] .goal-mini-bar > span {
+  background: linear-gradient(90deg, #fb923c, #ef4444);
+}
+
+/* Плавное появление контента панели */
+.panel.active {
+  animation: panel-in .18s ease both;
+}
+@keyframes panel-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ==========================================================================
+   35. Микрофиксы вложенных span-ов (карточки продуктов, программы, уведомления)
+   ========================================================================== */
+.food-card .food-info {
+  display: block;
+  overflow: hidden;
+}
+.food-card .food-name,
+.food-card .food-meta {
+  display: block;
+}
+.nutrition-log-item .log-name {
+  min-width: 0;
+}
+.notif-body {
+  display: block;
+}
+.notif-title,
+.notif-sub {
+  display: block;
+}
+.program-row .p-body {
+  display: block;
+}
+.program-row .p-name,
+.program-row .p-meta {
+  display: block;
+}
+.wo-body {
+  display: block;
+}
+@media (max-width: 420px) {
+  .program-row {
+    flex-wrap: wrap;
+  }
+  .program-row .p-body {
+    flex: 1 1 auto;
+  }
 }

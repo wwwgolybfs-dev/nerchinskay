@@ -5,13 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#080b12">
 <meta name="color-scheme" content="dark">
+<meta name="description" content="Trek Fit — дневник тренировок, питания и прогресса">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trek Fit">
 <title>Trek Fit — дневник тренировок</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
 
 <!-- Telegram Mini App SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <!-- Единственный источник стилей. При обновлении style.css меняй ?v= , чтобы Telegram сбросил кэш -->
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -43,6 +52,11 @@
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 5 5 10-11"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z"/><path d="M10 19a2.2 2.2 0 0 0 4 0"/></symbol>
+    <symbol id="i-apple" viewBox="0 0 24 24"><path d="M12 7.5c-3.3 0-5.5 2.6-5.5 6 0 3.6 2.4 7 4.6 7 .9 0 1.2-.5 2.1-.5s1.2.5 2.1.5c2 0 3.2-2.6 3.2-2.6-1.8-.9-2.4-2.3-2.4-3.6 0-1.6 1.3-2.5 1.3-2.5-1-1.5-2.6-1.8-3.4-1.8-.8 0-1.4.5-2 .5s-1.2-.5-2-.5"/><path d="M12 7.5c0-1.8 1.2-3.5 3-4"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19 10h-6.5z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+    <symbol id="i-csv" viewBox="0 0 24 24"><path d="M7 3.5h7l4.5 4.5V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4.5M9 13.5h6M9 17h4"/></symbol>
   </defs>
 </svg>
 
@@ -52,7 +66,7 @@
     <div class="brand-mark"><svg><use href="#i-dumbbell"/></svg></div>
     <h2>Вход в Trek Fit</h2>
     <p>Введи код синхронизации из раздела «Профиль» в Telegram-приложении</p>
-    <input id="sync-input" placeholder="XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="9" inputmode="text" aria-label="Код синхронизации">
+    <input id="sync-input" placeholder="XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="9" inputmode="text" aria-label="Код синхронизации" autofocus>
     <button class="btn" id="sync-btn" type="button">
       <svg><use href="#i-chevron"/></svg>Войти
     </button>
@@ -70,11 +84,14 @@
 
     <button class="nav-btn active" data-nav="home" type="button"><svg class="ic"><use href="#i-home"/></svg><span>Обзор</span></button>
     <button class="nav-btn" data-nav="workouts" type="button"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Тренировки</span></button>
+    <button class="nav-btn" data-nav="nutrition" type="button"><svg class="ic"><use href="#i-apple"/></svg><span>Питание</span></button>
     <button class="nav-btn" data-nav="weight" type="button"><svg class="ic"><use href="#i-scale"/></svg><span>Вес и состав</span></button>
+    <button class="nav-btn" data-nav="records" type="button"><svg class="ic"><use href="#i-trophy"/></svg><span>Рекорды</span></button>
     <button class="nav-btn" data-nav="calc" type="button"><svg class="ic"><use href="#i-calc"/></svg><span>Расчёты</span></button>
-    <button class="nav-btn" data-nav="profile" type="button"><svg class="ic"><use href="#i-user"/></svg><span>Профиль</span></button>
+    <button class="nav-btn" data-nav="profile" type="button"><svg class="ic"><use href="#i-user"/></svg><span>Профиль</span><i class="dot" id="side-profile-dot"></i></button>
 
     <div class="sidebar-foot">
+      <div class="goal-mini" id="side-goal"></div>
       <div class="user-line">
         <div class="avatar" id="side-avatar">?</div>
         <div class="user-name" id="sidebar-user">—</div>
@@ -91,6 +108,10 @@
     </div>
     <div class="topbar-right">
       <span class="tag" id="top-streak" title="Дней подряд"><svg style="width:12px;height:12px"><use href="#i-flame"/></svg><span>0</span></span>
+      <button class="chip" id="top-bell" type="button" aria-label="Уведомления" style="position:relative;padding:6px 8px">
+        <svg style="width:16px;height:16px"><use href="#i-bell"/></svg>
+        <i class="dot" id="top-bell-dot" style="position:absolute;top:-1px;right:-1px;width:8px;height:8px;border-radius:50%;background:var(--bad);display:none"></i>
+      </button>
       <div class="avatar" id="top-avatar" data-goto="profile" role="button" tabindex="0">?</div>
     </div>
   </header>
@@ -213,6 +234,17 @@
            ТРЕНИРОВКИ
            ================================================================ -->
       <section class="panel" id="panel-workouts">
+        <div class="eyebrow">Программы
+          <span class="link" data-goto="records" role="button" tabindex="0">Личные рекорды</span>
+        </div>
+        <div class="card tight">
+          <div id="programs-list" style="display:grid;gap:8px"></div>
+          <div class="row" style="margin-top:10px;gap:8px">
+            <button class="btn sm ghost" id="start-workout-btn" type="button"><svg><use href="#i-bolt"/></svg>Начать тренировку</button>
+            <button class="btn sm ghost" id="save-program-btn" type="button"><svg><use href="#i-plus"/></svg>Из последней</button>
+          </div>
+        </div>
+
         <div class="split">
           <div class="sticky">
             <div class="eyebrow">Записать подход</div>
@@ -462,6 +494,123 @@
       </section>
 
       <!-- ================================================================
+           ПИТАНИЕ
+           ================================================================ -->
+      <section class="panel" id="panel-nutrition">
+        <div class="eyebrow">Сегодня <span class="link" id="nut-date">—</span></div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi-label"><svg><use href="#i-flame"/></svg>Калории</div>
+            <div class="kpi-value num" id="nut-kcal">0</div>
+            <div class="kpi-foot" id="nut-kcal-note">из цели</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Белки</div>
+            <div class="kpi-value num" id="nut-protein">0</div>
+            <div class="kpi-foot">грамм</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Углеводы</div>
+            <div class="kpi-value num" id="nut-carbs">0</div>
+            <div class="kpi-foot">грамм</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Жиры</div>
+            <div class="kpi-value num" id="nut-fat">0</div>
+            <div class="kpi-foot">грамм</div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:12px">
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Баланс БЖУ</h3><div class="sub" id="nut-goal-note">—</div></div>
+            </div>
+            <div class="macro-ring"><canvas id="macros-chart" role="img" aria-label="Распределение БЖУ"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div><h3>Быстрое добавление</h3><div class="sub">Нажми — добавится порция</div></div>
+            </div>
+            <div class="nutrition-grid" id="food-grid"></div>
+          </div>
+        </div>
+
+        <div class="eyebrow">Съедено сегодня <span class="link" id="nut-clear" role="button" tabindex="0">Очистить</span></div>
+        <div class="nutrition-log" id="nutrition-log"></div>
+
+        <div class="eyebrow">Добавить вручную</div>
+        <div class="card">
+          <form id="nutrition-form" novalidate>
+            <div class="row">
+              <div class="field">
+                <label for="n-name">Продукт</label>
+                <input id="n-name" type="text" maxlength="60" placeholder="Например, гречка" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="n-kcal">Калории</label>
+                <input id="n-kcal" type="number" inputmode="numeric" min="0" max="5000" step="1" placeholder="200">
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="n-p">Белки, г</label>
+                <input id="n-p" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
+              </div>
+              <div class="field">
+                <label for="n-c">Углеводы, г</label>
+                <input id="n-c" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
+              </div>
+              <div class="field">
+                <label for="n-f">Жиры, г</label>
+                <input id="n-f" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
+              </div>
+            </div>
+            <button class="btn" type="submit"><svg><use href="#i-plus"/></svg>Добавить</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           РЕКОРДЫ
+           ================================================================ -->
+      <section class="panel" id="panel-records">
+        <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi">
+            <div class="kpi-label"><svg><use href="#i-trophy"/></svg>Упражнений</div>
+            <div class="kpi-value num" id="rec-count">—</div>
+            <div class="kpi-foot">с личным рекордом</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Рекордов за 30 дней</div>
+            <div class="kpi-value num" id="rec-recent">—</div>
+            <div class="kpi-foot">новых максимумов</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Лучший 1ПМ</div>
+            <div class="kpi-value num" id="rec-top">—</div>
+            <div class="kpi-foot" id="rec-top-note">—</div>
+          </div>
+        </div>
+
+        <div class="eyebrow">Личные рекорды</div>
+        <div class="card">
+          <div class="search" style="margin-bottom:10px">
+            <svg><use href="#i-search"/></svg>
+            <input id="records-search" type="search" placeholder="Поиск упражнения" autocomplete="off" aria-label="Поиск по упражнениям">
+          </div>
+          <div id="records-list"></div>
+        </div>
+
+        <div class="eyebrow">Динамика силы <span class="link" id="rec-chart-note">—</span></div>
+        <div class="card">
+          <div class="chart-box"><canvas id="records-chart" role="img" aria-label="Рост силовых показателей"></canvas></div>
+          <div class="chart-legend"><span><i style="background:#2dd4bf"></i>Оценка 1ПМ, кг</span></div>
+        </div>
+      </section>
+
+      <!-- ================================================================
            ПРОФИЛЬ
            ================================================================ -->
       <section class="panel" id="panel-profile">
@@ -501,6 +650,11 @@
                     <option value="maintain">Поддержание формы</option>
                   </select>
                 </div>
+                <div class="field">
+                  <label for="p-target">Целевой вес, кг</label>
+                  <input id="p-target" name="target_weight" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="75">
+                  <div class="sub" style="margin-top:4px">Показываем прогресс к цели в сайдбаре</div>
+                </div>
                 <button class="btn" type="submit"><svg><use href="#i-check"/></svg>Сохранить профиль</button>
               </form>
             </div>
@@ -515,10 +669,25 @@
               <button class="btn ghost hidden" id="copy-code-btn" type="button"><svg><use href="#i-copy"/></svg>Скопировать</button>
             </div>
 
+            <div class="eyebrow">Уведомления <span class="link" id="notif-read-all" role="button" tabindex="0">Прочитать все</span></div>
+            <div class="card">
+              <div class="notif-list" id="notif-list"></div>
+            </div>
+
+            <div class="eyebrow">Оформление</div>
+            <div class="card">
+              <div class="sub">Акцентный цвет интерфейса</div>
+              <div class="row" style="margin-top:10px">
+                <button class="btn ghost sm" id="theme-teal" type="button">Спокойная</button>
+                <button class="btn ghost sm" id="theme-energy" type="button">Энергия</button>
+              </div>
+            </div>
+
             <div class="eyebrow">Данные</div>
             <div class="card">
-              <div class="sub">Скачать копию всех записей в JSON — пригодится для таблиц и бэкапа.</div>
+              <div class="sub">Скачать копию всех записей — пригодится для таблиц и бэкапа.</div>
               <button class="btn ghost" id="export-btn" type="button" style="margin-top:12px"><svg><use href="#i-download"/></svg>Скачать JSON</button>
+              <button class="btn ghost" id="export-csv-btn" type="button" style="margin-top:8px"><svg><use href="#i-csv"/></svg>Скачать CSV</button>
               <button class="btn danger hidden" id="logout-btn" type="button" style="margin-top:8px"><svg><use href="#i-logout"/></svg>Выйти из аккаунта</button>
             </div>
 
@@ -533,9 +702,10 @@
   <nav class="bottomnav">
     <button class="nav-btn active" data-nav="home" type="button"><svg class="ic"><use href="#i-home"/></svg><span>Обзор</span></button>
     <button class="nav-btn" data-nav="workouts" type="button"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Тренировки</span></button>
+    <button class="nav-btn" data-nav="nutrition" type="button"><svg class="ic"><use href="#i-apple"/></svg><span>Питание</span></button>
     <button class="nav-btn" data-nav="weight" type="button"><svg class="ic"><use href="#i-scale"/></svg><span>Вес</span></button>
-    <button class="nav-btn" data-nav="calc" type="button"><svg class="ic"><use href="#i-calc"/></svg><span>Расчёты</span></button>
-    <button class="nav-btn" data-nav="profile" type="button"><svg class="ic"><use href="#i-user"/></svg><span>Профиль</span></button>
+    <button class="nav-btn" data-nav="records" type="button"><svg class="ic"><use href="#i-trophy"/></svg><span>Рекорды</span></button>
+    <button class="nav-btn" data-nav="profile" type="button"><svg class="ic"><use href="#i-user"/></svg><span>Профиль</span><i class="dot" id="nav-profile-dot"></i></button>
   </nav>
 </div>
 
@@ -547,6 +717,19 @@
     <svg style="width:14px;height:14px"><use href="#i-close"/></svg>
   </span>
 </button>
+
+<!-- Пресеты таймера отдыха (долгое нажатие на таймер) -->
+<div class="timer-presets hidden" id="timer-presets">
+  <button type="button" data-rest="60">1:00</button>
+  <button type="button" data-rest="90">1:30</button>
+  <button type="button" data-rest="120">2:00</button>
+  <button type="button" data-rest="180">3:00</button>
+</div>
+
+<!-- Универсальная шторка: активная тренировка, уведомления -->
+<div class="sheet-overlay" id="sheet-overlay">
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -862,22 +1045,63 @@
 
   let restInterval = null;
   let restEndsAt = 0;
+  let restDuration = Number(store.get('trek_rest_sec')) || 90;
+  let restLongPress = null;
+  let restLongFired = false;
+  let audioCtx = null;
+
+  function restLabel(sec) {
+    const s = Math.max(0, Math.round(sec));
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  // Короткий двойной «бип» на Web Audio — без внешних файлов
+  function beep() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = audioCtx || new Ctx();
+      if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume();
+      const t0 = audioCtx.currentTime;
+      [880, 1174].forEach((freq, i) => {
+        const start = t0 + i * 0.19;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.22, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.17);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.19);
+      });
+    } catch (_) {}
+  }
+
+  function buzz(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern || [180, 90, 180]); } catch (_) {}
+  }
 
   function startRestTimer(seconds) {
     const btn = $('#rest-timer');
     const valEl = $('#rest-timer-val');
     if (!btn || !valEl) return;
-    restEndsAt = Date.now() + (seconds || 90) * 1000;
+    restDuration = Number(seconds) || restDuration || 90;
+    store.set('trek_rest_sec', String(restDuration));
+    restEndsAt = Date.now() + restDuration * 1000;
     btn.classList.remove('hidden');
+    hideRestPresets();
 
     function tick() {
       const rem = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
-      const m = String(Math.floor(rem / 60)).padStart(2, '0');
-      const s = String(rem % 60).padStart(2, '0');
-      valEl.textContent = m + ':' + s;
+      valEl.textContent = restLabel(rem);
       if (rem <= 0) {
         stopRestTimer();
         haptic('ok');
+        buzz([200, 100, 200]);
+        beep();
         toast('Отдых окончен — пора в подход!', 'ok');
       }
     }
@@ -891,10 +1115,40 @@
     restInterval = null;
     const btn = $('#rest-timer');
     if (btn) btn.classList.add('hidden');
+    hideRestPresets();
+  }
+
+  function showRestPresets() {
+    const box = $('#timer-presets');
+    if (!box) return;
+    box.classList.remove('hidden');
+    $$('#timer-presets button').forEach(b => {
+      b.classList.toggle('active', Number(b.dataset.rest) === restDuration);
+      b.style.color = Number(b.dataset.rest) === restDuration ? 'var(--accent)' : '';
+    });
+  }
+  function hideRestPresets() {
+    const box = $('#timer-presets');
+    if (box) box.classList.add('hidden');
   }
 
   if ($('#rest-timer')) {
-    $('#rest-timer').addEventListener('click', (e) => {
+    const btn = $('#rest-timer');
+    btn.addEventListener('pointerdown', () => {
+      restLongFired = false;
+      clearTimeout(restLongPress);
+      restLongPress = setTimeout(() => {
+        restLongFired = true;
+        haptic('select');
+        showRestPresets();
+      }, 520);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => {
+      btn.addEventListener(ev, () => clearTimeout(restLongPress));
+    });
+    btn.addEventListener('click', (e) => {
+      clearTimeout(restLongPress);
+      if (restLongFired) { restLongFired = false; return; }
       if (e.target.closest('#rest-timer-close')) {
         e.stopPropagation();
         haptic('light');
@@ -904,6 +1158,17 @@
       restEndsAt += 30000;
       haptic('select');
       toast('+30 секунд отдыха');
+    });
+  }
+
+  const restPresets = $('#timer-presets');
+  if (restPresets) {
+    restPresets.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rest]');
+      if (!b) return;
+      haptic('select');
+      startRestTimer(Number(b.dataset.rest));
+      toast('Отдых ' + restLabel(Number(b.dataset.rest)));
     });
   }
 
@@ -1225,6 +1490,9 @@
     $('#side-streak').textContent = streak() + ' дн серия · ' + (p.goal === 'cut' ? 'похудение' : p.goal === 'mass' ? 'набор' : 'поддержание');
     const ts = $('#top-streak');
     if (ts) ts.querySelector('span').textContent = streak();
+
+    renderGoalMini();
+    updateNotifBadge();
   }
 
   function renderHeatmap() {
@@ -1277,7 +1545,7 @@
     if (sets) parts.push(sets + ' подх');
     const load = weight && reps ? (weight * reps * (sets || 1)) : 0;
     const pr = w._pr ? '<span class="tag pr">PR</span>' : '';
-    return '<div class="set-row" data-repeat-ex="' + esc(w.exercise || '') + '" data-repeat-group="' + esc(g || 'chest') + '" data-repeat-w="' + (weight || '') + '" data-repeat-r="' + (reps || '') + '" data-repeat-s="' + (sets || 3) + '" style="cursor:pointer" title="Нажми, чтобы скопировать в форму">' +
+    return '<div class="set-row" data-group="' + esc(g || 'other') + '" data-repeat-ex="' + esc(w.exercise || '') + '" data-repeat-group="' + esc(g || 'chest') + '" data-repeat-w="' + (weight || '') + '" data-repeat-r="' + (reps || '') + '" data-repeat-s="' + (sets || 3) + '" style="cursor:pointer" title="Нажми, чтобы скопировать в форму">' +
       '<div>' +
         '<div class="set-name">' + esc(w.exercise || 'Без названия') + '</div>' +
         '<div class="set-sub">' +
@@ -1455,22 +1723,31 @@
     const f = $('#profile-form');
     const isEditing = f && f.contains(document.activeElement);
     if (f && !isEditing) {
-      f.weight_kg.value = p.weight_kg != null ? p.weight_kg : (currentWeight() || '');
-      f.height_cm.value = p.height_cm != null ? p.height_cm : '';
-      f.age.value = p.age != null ? p.age : '';
-      f.gender.value = p.gender || 'male';
-      f.goal.value = p.goal || 'maintain';
+      const setVal = (sel, val) => { const el = $(sel); if (el) el.value = val; };
+      setVal('#p-weight', p.weight_kg != null ? p.weight_kg : (currentWeight() || ''));
+      setVal('#p-height', p.height_cm != null ? p.height_cm : '');
+      setVal('#p-age', p.age != null ? p.age : '');
+      setVal('#p-gender', p.gender || 'male');
+      setVal('#p-goal', p.goal || 'maintain');
     }
     if (p.sync_code) {
       $('#sync-code-display').textContent = p.sync_code;
       $('#copy-code-btn').classList.remove('hidden');
     }
+    const targetEl = $('#p-target');
+    if (targetEl && !isEditing) targetEl.value = store.get(LS.target) || '';
+    const th = store.get(LS.theme) || 'teal';
+    const a = $('#theme-teal'), b = $('#theme-energy');
+    if (a) a.classList.toggle('ghost', th === 'energy');
+    if (b) b.classList.toggle('ghost', th !== 'energy');
   }
 
   const TITLES = {
     home: ['Обзор', 'Прогресс, объём и баланс тренировок'],
     workouts: ['Тренировки', 'Записывай подходы и следи за объёмом'],
+    nutrition: ['Питание', 'Калории и БЖУ за день'],
     weight: ['Вес и состав', 'Динамика веса, жира и мышц'],
+    records: ['Рекорды', 'Личные максимумы и динамика силы'],
     calc: ['Расчёты', 'Нормы питания и силовые показатели'],
     profile: ['Профиль', 'Данные, доступ и экспорт']
   };
@@ -1494,10 +1771,13 @@
   function renderTab(name) {
     try {
       if (name === 'home') renderHome();
-      else if (name === 'workouts') renderWorkouts();
+      else if (name === 'workouts') { renderPrograms(); renderWorkouts(); }
+      else if (name === 'nutrition') renderNutrition();
       else if (name === 'weight') renderWeight();
+      else if (name === 'records') renderRecords();
       else if (name === 'calc') renderCalc();
-      else if (name === 'profile') renderProfile();
+      else if (name === 'profile') { renderProfile(); renderNotifications(); }
+      updateNotifBadge();
     } catch (e) { console.error('render ' + name, e); }
   }
 
@@ -1661,16 +1941,21 @@
 
       withBusy(wf.querySelector('button[type=submit]'), async () => {
         try {
-          await api('add_workout', payload);
+          const res = await sendWrite('add_workout', payload);
           const keepGroup = $('#group-select').value;
-          const data = await api('get_workouts', {});
-          state.workouts = data.workouts || [];
+          if (res && res.queued) {
+            state.workouts.unshift(Object.assign({ logged_at: localISO(new Date()) }, payload));
+          } else {
+            const data = await api('get_workouts', {});
+            state.workouts = data.workouts || [];
+          }
           markPRs();
+          saveCache();
           if (isOther) { $('#group-select').value = keepGroup; }
           syncExerciseUI(false);
           renderWorkouts();
-          startRestTimer(90);
-          toast('Подход записан · отдых 01:30', 'ok');
+          startRestTimer(restDuration);
+          toast('Подход записан · отдых ' + restLabel(restDuration), 'ok');
         } catch (err) { toast(err.message, 'err'); }
       });
     });
@@ -1690,13 +1975,19 @@
       };
       withBusy(wgtf.querySelector('button[type=submit]'), async () => {
         try {
-          await api('add_weight', payload);
-          const data = await api('get_weight_log');
-          setWeights(data.entries);
+          const res = await sendWrite('add_weight', payload);
+          if (res && res.queued) {
+            setWeights([Object.assign({}, payload, { logged_at: localISO(new Date()) })].concat(state.weights));
+          } else {
+            const data = await api('get_weight_log');
+            setWeights(data.entries);
+          }
+          saveCache();
           $('#b-fat').value = '';
           $('#b-muscle').value = '';
           $('#b-weight').value = '';
           renderWeight();
+          renderGoalMini();
           toast('Вес сохранён', 'ok');
         } catch (err) { toast(err.message, 'err'); }
       });
@@ -1715,13 +2006,18 @@
         gender: $('#p-gender').value,
         goal: $('#p-goal').value
       };
+      const target = num($('#p-target').value);
+      if (target) store.set(LS.target, String(target));
+      else store.del(LS.target);
       withBusy(pf.querySelector('button[type=submit]'), async () => {
         try {
-          await api('upsert_profile', payload);
+          await sendWrite('upsert_profile', payload);
           const data = await api('get_profile');
           state.profile = data.profile || state.profile;
+          saveCache();
           renderProfile();
           renderCalc();
+          renderGoalMini();
           toast('Профиль сохранён', 'ok');
         } catch (err) { toast(err.message, 'err'); }
       });
@@ -1863,7 +2159,919 @@
   }
 
   /* ============================================================
-     17. Загрузка и старт
+     17. Локальный слой: кэш, оффлайн-очередь, настройки
+     ============================================================ */
+  const LS = {
+    cache: 'trek_cache_v1',
+    queue: 'trek_queue_v1',
+    nutrition: 'trek_nutrition_v1',
+    programs: 'trek_programs_v1',
+    notifRead: 'trek_notif_read_v1',
+    target: 'trek_target_weight',
+    theme: 'trek_theme'
+  };
+
+  function readJSON(key, fallback) {
+    try {
+      const raw = store.get(key);
+      if (!raw) return fallback;
+      const val = JSON.parse(raw);
+      return val == null ? fallback : val;
+    } catch (_) { return fallback; }
+  }
+  function writeJSON(key, val) {
+    try { store.set(key, JSON.stringify(val)); } catch (_) {}
+  }
+
+  function localISO(d) {
+    const p = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+
+  // ---- Кэш последних данных (stale-while-revalidate) ----
+  function saveCache() {
+    writeJSON(LS.cache, { at: Date.now(), profile: state.profile, workouts: state.workouts, weights: state.weights });
+  }
+  function loadCache() {
+    const c = readJSON(LS.cache, null);
+    if (!c || !Array.isArray(c.workouts)) return false;
+    state.profile = c.profile || state.profile;
+    state.workouts = c.workouts || [];
+    setWeights(c.weights || []);
+    markPRs();
+    return true;
+  }
+
+  // ---- Оффлайн-очередь записей ----
+  function pendingWrites() { const q = readJSON(LS.queue, []); return Array.isArray(q) ? q : []; }
+  function queueWrite(action, payload) {
+    const q = pendingWrites();
+    q.push({ action: action, payload: payload, at: Date.now() });
+    writeJSON(LS.queue, q);
+  }
+  async function flushQueue() {
+    const q = pendingWrites();
+    if (!q.length || !navigator.onLine) return 0;
+    const left = [];
+    for (const item of q) {
+      try { await apiRetry(item.action, item.payload); }
+      catch (e) {
+        if (/Failed to fetch|NetworkError|за 15 секунд|Нет связи/i.test(String(e.message))) left.push(item);
+      }
+    }
+    writeJSON(LS.queue, left);
+    const done = q.length - left.length;
+    if (done) toast('Синхронизировано записей: ' + done, 'ok');
+    return done;
+  }
+  async function sendWrite(action, payload) {
+    try { return await apiRetry(action, payload); }
+    catch (e) {
+      if (/Failed to fetch|NetworkError|за 15 секунд|Нет связи/i.test(String(e.message))) {
+        queueWrite(action, payload);
+        return { queued: true };
+      }
+      throw e;
+    }
+  }
+  window.addEventListener('online', () => { flushQueue().then(n => { if (n) loadAll().then(() => renderTab(state.tab)); }); });
+
+  /* ============================================================
+     18. Тема оформления
+     ============================================================ */
+  function applyTheme(name) {
+    const root = document.documentElement;
+    if (name === 'energy') root.setAttribute('data-theme', 'energy');
+    else root.removeAttribute('data-theme');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', name === 'energy' ? '#160a06' : '#080b12');
+  }
+  function setTheme(name) {
+    applyTheme(name);
+    store.set(LS.theme, name);
+    const a = $('#theme-teal'), b = $('#theme-energy');
+    if (a) a.classList.toggle('ghost', name === 'energy');
+    if (b) b.classList.toggle('ghost', name !== 'energy');
+    toast(name === 'energy' ? 'Тема «Энергия»' : 'Спокойная тема', 'ok');
+  }
+
+  /* ============================================================
+     19. Питание: дневник КБЖУ
+     ============================================================ */
+  const FOOD_LIB = [
+    { e: '🍗', n: 'Куриная грудка', m: '150 г', kcal: 248, p: 46, c: 0, f: 5 },
+    { e: '🥚', n: 'Яйца', m: '3 шт', kcal: 230, p: 19, c: 1, f: 16 },
+    { e: '🍚', n: 'Рис отварной', m: '200 г', kcal: 260, p: 5, c: 56, f: 1 },
+    { e: '🍝', n: 'Макароны', m: '200 г', kcal: 300, p: 10, c: 60, f: 2 },
+    { e: '🥣', n: 'Овсянка', m: '60 г сухих', kcal: 230, p: 8, c: 38, f: 5 },
+    { e: '🍌', n: 'Банан', m: '1 шт', kcal: 105, p: 1, c: 27, f: 0 },
+    { e: '🧀', n: 'Творог 5%', m: '200 г', kcal: 240, p: 34, c: 6, f: 9 },
+    { e: '🥛', n: 'Молоко 2,5%', m: '250 мл', kcal: 130, p: 8, c: 12, f: 6 },
+    { e: '🥩', n: 'Говядина', m: '150 г', kcal: 280, p: 40, c: 0, f: 12 },
+    { e: '🐟', n: 'Лосось', m: '150 г', kcal: 310, p: 32, c: 0, f: 20 },
+    { e: '🥑', n: 'Авокадо', m: '½ шт', kcal: 160, p: 2, c: 9, f: 15 },
+    { e: '🥜', n: 'Орехи', m: '30 г', kcal: 190, p: 6, c: 6, f: 16 },
+    { e: '🍫', n: 'Протеин-батончик', m: '60 г', kcal: 220, p: 20, c: 22, f: 8 },
+    { e: '🥤', n: 'Протеин', m: '30 г', kcal: 120, p: 24, c: 3, f: 1 }
+  ];
+
+  function nutritionAll() {
+    const v = readJSON(LS.nutrition, {});
+    return v && typeof v === 'object' ? v : {};
+  }
+  function nutritionDay(key) {
+    const all = nutritionAll();
+    return Array.isArray(all[key]) ? all[key] : [];
+  }
+  function nutritionTotals(items) {
+    return (items || []).reduce((a, i) => {
+      a.kcal += Number(i.kcal) || 0;
+      a.p += Number(i.p) || 0;
+      a.c += Number(i.c) || 0;
+      a.f += Number(i.f) || 0;
+      return a;
+    }, { kcal: 0, p: 0, c: 0, f: 0 });
+  }
+  function nutritionAdd(item) {
+    const all = nutritionAll();
+    const key = dayKey(new Date());
+    const list = Array.isArray(all[key]) ? all[key] : [];
+    list.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      e: item.e || '🍽️',
+      n: item.n || 'Продукт',
+      kcal: Math.round(Number(item.kcal) || 0),
+      p: round(Number(item.p) || 0, 1),
+      c: round(Number(item.c) || 0, 1),
+      f: round(Number(item.f) || 0, 1)
+    });
+    all[key] = list;
+    writeJSON(LS.nutrition, all);
+  }
+
+  function drawMacros(total) {
+    const el = document.getElementById('macros-chart');
+    if (!el) return;
+    destroyChart('macros');
+    const ctx = canvasCtx(el);
+    if (!ctx || !window.Chart) return;
+    const vals = [Math.round(total.p * 4), Math.round(total.c * 4), Math.round(total.f * 9)];
+    const empty = vals.every(v => v <= 0);
+    mountChart('macros', ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Белки', 'Углеводы', 'Жиры'],
+        datasets: [{
+          data: empty ? [1, 1, 1] : vals,
+          backgroundColor: empty ? ['rgba(148,163,184,.16)', 'rgba(148,163,184,.12)', 'rgba(148,163,184,.08)'] : ['#2dd4bf', '#6366f1', '#fbbf24'],
+          borderWidth: 0,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            enabled: !empty,
+            callbacks: { label: (it) => ' ' + nf.format(Math.round(it.parsed)) + ' ккал' }
+          }
+        }
+      }
+    });
+  }
+
+  function renderNutrition() {
+    const key = dayKey(new Date());
+    const items = nutritionDay(key);
+    const t = nutritionTotals(items);
+    const goal = goalKcal(state.profile);
+
+    const dateEl = $('#nut-date');
+    if (dateEl) dateEl.textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    if ($('#nut-kcal')) $('#nut-kcal').innerHTML = nf.format(Math.round(t.kcal)) + (goal ? ' <small>/ ' + nf.format(goal) + '</small>' : '');
+    if ($('#nut-kcal-note')) {
+      $('#nut-kcal-note').textContent = !goal ? 'заполни профиль — посчитаем цель'
+        : (t.kcal > goal ? 'перебор ' + nf.format(Math.round(t.kcal - goal)) + ' ккал' : 'осталось ' + nf.format(Math.round(goal - t.kcal)) + ' ккал');
+    }
+    if ($('#nut-protein')) $('#nut-protein').innerHTML = Math.round(t.p) + ' <small>г</small>';
+    if ($('#nut-carbs')) $('#nut-carbs').innerHTML = Math.round(t.c) + ' <small>г</small>';
+    if ($('#nut-fat')) $('#nut-fat').innerHTML = Math.round(t.f) + ' <small>г</small>';
+    if ($('#nut-goal-note')) {
+      $('#nut-goal-note').textContent = goal
+        ? 'цель ' + nf.format(goal) + ' ккал · съедено ' + nf.format(Math.round(t.kcal))
+        : 'цель появится после заполнения профиля';
+    }
+
+    const grid = $('#food-grid');
+    if (grid) {
+      grid.innerHTML = FOOD_LIB.map((f, i) =>
+        '<button class="food-card" type="button" data-food="' + i + '">' +
+          '<span class="food-emoji">' + f.e + '</span>' +
+          '<span class="food-info"><span class="food-name">' + esc(f.n) + '</span>' +
+          '<span class="food-meta">' + esc(f.m) + ' · ' + f.kcal + ' ккал</span></span>' +
+        '</button>'
+      ).join('');
+    }
+
+    const log = $('#nutrition-log');
+    if (log) {
+      if (!items.length) {
+        log.innerHTML = '<div class="empty"><svg><use href="#i-apple"/></svg><b>Пока пусто</b>Добавь первый продукт за сегодня</div>';
+      } else {
+        const parts = items.map(it =>
+          '<div class="nutrition-log-item">' +
+            '<span class="food-emoji">' + esc(it.e) + '</span>' +
+            '<span class="log-name">' + esc(it.n) + '</span>' +
+            '<span class="log-kcal">' + it.kcal + ' ккал · Б' + it.p + ' Ж' + it.f + ' У' + it.c + '</span>' +
+            '<button class="row-action" type="button" data-nut-del="' + esc(it.id) + '" aria-label="Удалить"><svg style="width:14px;height:14px"><use href="#i-close"/></svg></button>' +
+          '</div>'
+        );
+        log.innerHTML = parts.join('') +
+          '<div class="nutrition-summary" style="margin-top:8px">' +
+            '<div class="ns-item"><span class="ns-label">Ккал</span><span class="ns-value">' + Math.round(t.kcal) + '</span></div>' +
+            '<div class="ns-item"><span class="ns-label">Белки</span><span class="ns-value">' + Math.round(t.p) + '<small> г</small></span></div>' +
+            '<div class="ns-item"><span class="ns-label">Углеводы</span><span class="ns-value">' + Math.round(t.c) + '<small> г</small></span></div>' +
+            '<div class="ns-item"><span class="ns-label">Жиры</span><span class="ns-value">' + Math.round(t.f) + '<small> г</small></span></div>' +
+          '</div>';
+      }
+    }
+
+    drawMacros(t);
+  }
+
+  /* ============================================================
+     20. Рекорды
+     ============================================================ */
+  let recordsCache = [];
+  let recordsSelected = null;
+
+  function computeRecords() {
+    const map = new Map();
+    state.workouts.forEach(w => {
+      const name = String(w.exercise || '').trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const weight = num(w.weight_kg) || 0;
+      const reps = num(w.reps) || 0;
+      const rm = e1rm(weight, reps);
+      if (!rm) return;
+      const rec = map.get(key) || { key: key, name: name, group: w.muscle_group || '', best: 0, weight: 0, reps: 0, date: null, points: [] };
+      if (rm > rec.best) { rec.best = rm; rec.weight = weight; rec.reps = reps; rec.date = w.logged_at; }
+      if (!rec.group && w.muscle_group) rec.group = w.muscle_group;
+      rec.points.push({ t: parseDate(w.logged_at), v: rm });
+      map.set(key, rec);
+    });
+
+    const since = startOfDay(addDays(new Date(), -29)).getTime();
+    return Array.from(map.values()).map(r => {
+      let prevBest = 0;
+      r.points.forEach(p => { if (p.t.getTime() < since && p.v > prevBest) prevBest = p.v; });
+      r.delta = prevBest > 0 ? r.best - prevBest : 0;
+      r.recent = r.date && parseDate(r.date).getTime() >= since;
+      r.points.sort((a, b) => a.t - b.t);
+      return r;
+    }).sort((a, b) => b.best - a.best);
+  }
+
+  function drawRecordsChart() {
+    const el = document.getElementById('records-chart');
+    if (!el) return;
+    destroyChart('records');
+    const ctx = canvasCtx(el);
+    if (!ctx || !window.Chart) return;
+    const rec = recordsCache.find(r => r.key === recordsSelected);
+    const note = $('#rec-chart-note');
+    if (note) note.textContent = rec ? rec.name : '—';
+    if (!rec || rec.points.length < 2) {
+      try { ctx.clearRect(0, 0, el.width, el.height); } catch (_) {}
+      return;
+    }
+    const pts = rec.points;
+    mountChart('records', ctx, {
+      type: 'line',
+      data: {
+        labels: pts.map(p => fmtShort(p.t)),
+        datasets: [{
+          data: pts.map(p => round(p.v, 1)),
+          borderColor: PALETTE.accent,
+          borderWidth: 2,
+          pointRadius: pts.length > 30 ? 0 : 2.5,
+          pointBackgroundColor: '#0b1018',
+          pointBorderColor: PALETTE.accent,
+          pointBorderWidth: 1.5,
+          tension: .3,
+          fill: true,
+          backgroundColor: (context) => {
+            const chart = context.chart;
+            const area = chart.chartArea;
+            if (!area) return 'rgba(45,212,191,.10)';
+            const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            g.addColorStop(0, 'rgba(45,212,191,.26)');
+            g.addColorStop(1, 'rgba(45,212,191,0)');
+            return g;
+          }
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 6, color: '#5f6d82' } },
+          y: {
+            grid: { color: PALETTE.line, drawTicks: false },
+            border: { display: false },
+            ticks: { padding: 8, color: '#5f6d82', callback: (v) => nf1.format(v) }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => parseDate(pts[items[0].dataIndex].t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
+              label: (item) => ' 1ПМ ≈ ' + nf1.format(item.parsed.y) + ' кг'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderRecords() {
+    recordsCache = computeRecords();
+    const total = recordsCache.length;
+    const recent = recordsCache.filter(r => r.recent).length;
+    const top = recordsCache[0];
+
+    if ($('#rec-count')) $('#rec-count').textContent = total;
+    if ($('#rec-recent')) $('#rec-recent').textContent = recent;
+    if ($('#rec-top')) $('#rec-top').innerHTML = top ? Math.round(top.best) + ' <small>кг</small>' : '—';
+    if ($('#rec-top-note')) $('#rec-top-note').textContent = top ? top.name : 'нет данных';
+
+    const q = ($('#records-search') && $('#records-search').value || '').trim().toLowerCase();
+    const list = q ? recordsCache.filter(r => r.name.toLowerCase().indexOf(q) >= 0) : recordsCache;
+
+    const box = $('#records-list');
+    if (box) {
+      if (!list.length) {
+        box.innerHTML = '<div class="empty"><svg><use href="#i-trophy"/></svg><b>' + (q ? 'Ничего не найдено' : 'Рекордов пока нет') + '</b>' +
+          (q ? 'Попробуй другое название' : 'Запиши подход с весом и повторами') + '</div>';
+      } else {
+        box.innerHTML = list.map((r, i) => {
+          const medal = i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+          const delta = r.delta > 0.5 ? '<span class="tag pr">+' + nf1.format(r.delta) + ' кг</span>' : (r.recent ? '<span class="tag pr">PR</span>' : '');
+          const dateStr = r.date ? parseDate(r.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+          return '<div class="pr-row" data-record="' + esc(r.key) + '" style="cursor:pointer" title="Показать динамику">' +
+            '<div class="pr-rank">' + medal + '</div>' +
+            '<div>' +
+              '<div class="set-name">' + esc(r.name) + '</div>' +
+              '<div class="set-sub">' + esc(GROUPS[r.group] || r.group || '') + ' · ' + nf1.format(r.weight) + ' кг × ' + r.reps + ' · ' + esc(dateStr) + ' ' + delta + '</div>' +
+            '</div>' +
+            '<div class="pr-val">' + Math.round(r.best) + '<small>1ПМ, кг</small></div>' +
+          '</div>';
+        }).join('');
+      }
+    }
+
+    if (!recordsSelected || !recordsCache.some(r => r.key === recordsSelected)) {
+      recordsSelected = recordsCache.length ? recordsCache[0].key : null;
+    }
+    drawRecordsChart();
+  }
+
+  /* ============================================================
+     21. Программы тренировок
+     ============================================================ */
+  const DEFAULT_PROGRAMS = [
+    {
+      id: 'chest', emoji: '🏋️', name: 'Грудь и трицепс',
+      items: [
+        { exercise: 'Жим лёжа', muscle_group: 'chest', weight_kg: 60, reps: 8, sets: 3 },
+        { exercise: 'Жим на наклонной скамье', muscle_group: 'chest', weight_kg: 40, reps: 10, sets: 3 },
+        { exercise: 'Разводка гантелей', muscle_group: 'chest', weight_kg: 14, reps: 12, sets: 3 },
+        { exercise: 'Французский жим', muscle_group: 'triceps', weight_kg: 20, reps: 10, sets: 3 }
+      ]
+    },
+    {
+      id: 'back', emoji: '🪝', name: 'Спина и бицепс',
+      items: [
+        { exercise: 'Подтягивания', muscle_group: 'back', weight_kg: 0, reps: 8, sets: 3 },
+        { exercise: 'Тяга верхнего блока', muscle_group: 'back', weight_kg: 50, reps: 10, sets: 3 },
+        { exercise: 'Тяга штанги в наклоне', muscle_group: 'back', weight_kg: 50, reps: 10, sets: 3 },
+        { exercise: 'Подъём штанги на бицепс', muscle_group: 'biceps', weight_kg: 25, reps: 10, sets: 3 }
+      ]
+    },
+    {
+      id: 'legs', emoji: '🦵', name: 'День ног',
+      items: [
+        { exercise: 'Приседания со штангой', muscle_group: 'legs', weight_kg: 70, reps: 8, sets: 4 },
+        { exercise: 'Жим ногами', muscle_group: 'legs', weight_kg: 120, reps: 10, sets: 3 },
+        { exercise: 'Румынская тяга', muscle_group: 'legs', weight_kg: 60, reps: 10, sets: 3 },
+        { exercise: 'Подъём на носки', muscle_group: 'legs', weight_kg: 40, reps: 15, sets: 3 }
+      ]
+    },
+    {
+      id: 'shoulders', emoji: '💪', name: 'Плечи и пресс',
+      items: [
+        { exercise: 'Жим штанги стоя', muscle_group: 'shoulders', weight_kg: 35, reps: 8, sets: 3 },
+        { exercise: 'Махи гантелями в стороны', muscle_group: 'shoulders', weight_kg: 8, reps: 12, sets: 3 },
+        { exercise: 'Разведение в наклоне', muscle_group: 'shoulders', weight_kg: 8, reps: 12, sets: 3 },
+        { exercise: 'Планка', muscle_group: 'abs', weight_kg: 0, reps: 60, sets: 3 }
+      ]
+    }
+  ];
+
+  function customPrograms() {
+    const v = readJSON(LS.programs, []);
+    return Array.isArray(v) ? v : [];
+  }
+  function programsAll() {
+    return DEFAULT_PROGRAMS.concat(customPrograms());
+  }
+  function programVolume(p) {
+    return (p.items || []).reduce((s, i) => s + (Number(i.sets) || 0), 0);
+  }
+
+  function renderPrograms() {
+    const box = $('#programs-list');
+    if (!box) return;
+    box.innerHTML = programsAll().map((p, i) =>
+      '<div class="program-row" data-program-row="' + i + '">' +
+        '<span class="p-emoji">' + (p.emoji || '📋') + '</span>' +
+        '<span class="p-body"><span class="p-name">' + esc(p.name) + '</span>' +
+        '<span class="p-meta">' + (p.items || []).length + ' упражн. · ' + programVolume(p) + ' подходов</span></span>' +
+        '<button class="btn sm primary" type="button" data-program-start="' + i + '">Старт</button>' +
+        '<button class="btn sm ghost" type="button" data-program-add="' + i + '" title="Добавить все подходы в дневник">+</button>' +
+      '</div>'
+    ).join('');
+  }
+
+  async function addProgramToLog(p) {
+    for (const it of (p.items || [])) {
+      const payload = { exercise: it.exercise, muscle_group: it.muscle_group, weight_kg: it.weight_kg, reps: it.reps, sets: it.sets };
+      state.workouts.unshift({
+        exercise: it.exercise, muscle_group: it.muscle_group,
+        weight_kg: it.weight_kg, reps: it.reps, sets: it.sets,
+        logged_at: localISO(new Date()), id: 'local-' + Date.now() + Math.random().toString(36).slice(2, 5)
+      });
+      try { await sendWrite('add_workout', payload); } catch (e) { toast(e.message, 'err'); }
+    }
+    markPRs();
+    saveCache();
+    renderWorkouts();
+    renderHome();
+    toast('Программа «' + p.name + '» добавлена', 'ok');
+  }
+
+  function saveLastSessionAsProgram() {
+    const all = sessions();
+    if (!all.length) { toast('Пока нет тренировок для шаблона', 'err'); return; }
+    const s = all[0];
+    const items = s.rows.map(r => ({
+      exercise: r.exercise, muscle_group: r.muscle_group,
+      weight_kg: num(r.weight_kg) || 0, reps: num(r.reps) || 0, sets: num(r.sets) || 1
+    }));
+    const name = 'Моя тренировка ' + (customPrograms().length + 1);
+    const list = customPrograms();
+    list.push({ id: 'custom-' + Date.now(), emoji: '⭐', name: name, items: items });
+    writeJSON(LS.programs, list);
+    renderPrograms();
+    toast('Шаблон сохранён: ' + name, 'ok');
+  }
+
+  /* ============================================================
+     22. Шторка и режим активной тренировки
+     ============================================================ */
+  let activeWorkout = null;
+
+  function openSheet(html) {
+    const overlay = $('#sheet-overlay');
+    const sheet = $('#sheet');
+    if (!overlay || !sheet) return;
+    sheet.innerHTML = html;
+    overlay.classList.add('open');
+    document.body.classList.add('sheet-open');
+  }
+  function closeSheet() {
+    const overlay = $('#sheet-overlay');
+    if (overlay) overlay.classList.remove('open');
+    document.body.classList.remove('sheet-open');
+  }
+
+  function activeProgress() {
+    const items = activeWorkout ? activeWorkout.items : [];
+    const total = items.reduce((s, i) => s + (Number(i.sets) || 0), 0);
+    const done = items.reduce((s, i) => s + (Number(i.done) || 0), 0);
+    return { total: total, done: done, pct: total ? Math.round(done / total * 100) : 0 };
+  }
+
+  function activeSheetHtml(summary) {
+    const items = activeWorkout.items;
+    const pr = activeProgress();
+    const elapsed = Math.max(0, Math.floor((Date.now() - activeWorkout.startedAt) / 1000));
+    const head = '<div class="sheet-head">' +
+      '<div><div class="sheet-title">' + (summary ? 'Тренировка завершена' : esc(activeWorkout.title || 'Активная тренировка')) + '</div>' +
+      '<div class="sub">' + (summary ? 'Итоги занятия' : 'Время <span class="wo-timer">' + restLabel(elapsed) + '</span> · ' + pr.done + ' из ' + pr.total + ' подходов') + '</div></div>' +
+      '<button class="sheet-close" type="button" data-sheet-close aria-label="Закрыть"><svg><use href="#i-close"/></svg></button>' +
+    '</div>';
+
+    if (summary) {
+      const tonnageSum = items.reduce((s, i) => s + (Number(i.weight_kg) || 0) * (Number(i.reps) || 0) * (Number(i.done) || 0), 0);
+      return head +
+        '<div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">' +
+          '<div class="kpi"><div class="kpi-label">Подходы</div><div class="kpi-value num">' + pr.done + '</div></div>' +
+          '<div class="kpi"><div class="kpi-label">Тоннаж</div><div class="kpi-value num">' + nf.format(Math.round(tonnageSum)) + '</div><div class="kpi-foot">кг</div></div>' +
+          '<div class="kpi"><div class="kpi-label">Время</div><div class="kpi-value num">' + restLabel(Math.floor((Date.now() - activeWorkout.startedAt) / 1000)) + '</div></div>' +
+        '</div>' +
+        items.map(i => '<div class="wo-item ' + (i.done >= i.sets ? 'done' : '') + '">' +
+          '<div class="wo-body"><div class="wo-name">' + esc(i.exercise) + '</div>' +
+          '<div class="wo-meta">' + i.done + ' / ' + i.sets + ' подходов · ' + (Number(i.weight_kg) || 0) + ' кг × ' + (Number(i.reps) || 0) + '</div></div>' +
+          '<div class="wo-count">' + (i.done >= i.sets ? '✓' : i.done + '/' + i.sets) + '</div></div>').join('') +
+        '<button class="btn" type="button" data-wo-finish-close style="margin-top:10px"><svg><use href="#i-check"/></svg>Готово</button>';
+    }
+
+    return head +
+      '<div class="progress" style="height:8px;border-radius:999px;background:rgba(148,163,184,.16);overflow:hidden;margin-bottom:12px">' +
+        '<span style="display:block;height:100%;width:' + pr.pct + '%;background:linear-gradient(90deg,var(--accent),#7dd3fc);transition:width .3s"></span>' +
+      '</div>' +
+      items.map((i, idx) =>
+        '<div class="wo-item ' + (i.done >= i.sets ? 'done' : '') + '">' +
+          '<div class="wo-body"><div class="wo-name">' + esc(i.exercise) + '</div>' +
+          '<div class="wo-meta">' + (Number(i.weight_kg) || 0) + ' кг × ' + (Number(i.reps) || 0) + ' · ' + i.done + ' / ' + i.sets + '</div></div>' +
+          '<div class="wo-count">' + i.done + '/' + i.sets + '</div>' +
+          '<button class="btn sm ' + (i.done >= i.sets ? 'ghost' : 'primary') + '" type="button" data-wo-set="' + idx + '"' + (i.done >= i.sets ? ' disabled' : '') + '>' +
+            (i.done >= i.sets ? '✓' : 'Подход') + '</button>' +
+        '</div>'
+      ).join('') +
+      '<div class="row" style="margin-top:10px;gap:8px">' +
+        '<button class="btn ghost" type="button" data-wo-finish><svg><use href="#i-check"/></svg>Завершить</button>' +
+        '<button class="btn ghost" type="button" data-sheet-close>Свернуть</button>' +
+      '</div>';
+  }
+
+  function startWorkout(items, title) {
+    if (!items || !items.length) { toast('Нет упражнений для тренировки', 'err'); return; }
+    activeWorkout = {
+      title: title || 'Свободная тренировка',
+      startedAt: Date.now(),
+      items: items.map(i => ({
+        exercise: i.exercise, muscle_group: i.muscle_group || EX_GROUP[i.exercise] || 'chest',
+        weight_kg: Number(i.weight_kg) || 0, reps: Number(i.reps) || 0, sets: Number(i.sets) || 1, done: 0
+      }))
+    };
+    haptic('select');
+    openSheet(activeSheetHtml(false));
+  }
+
+  function startFreeWorkout() {
+    const all = sessions();
+    let items = [];
+    if (all.length) {
+      items = all[0].rows.map(r => ({
+        exercise: r.exercise, muscle_group: r.muscle_group,
+        weight_kg: num(r.weight_kg) || 0, reps: num(r.reps) || 0, sets: num(r.sets) || 3
+      }));
+    } else {
+      const sel = $('#exercise-select');
+      const name = sel && sel.value !== OTHER ? sel.value : 'Жим лёжа';
+      items = [{ exercise: name, muscle_group: EX_GROUP[name] || 'chest', weight_kg: 40, reps: 10, sets: 3 }];
+    }
+    startWorkout(items, 'Свободная тренировка');
+  }
+
+  function logActiveSet(idx) {
+    if (!activeWorkout) return;
+    const it = activeWorkout.items[idx];
+    if (!it || it.done >= it.sets) return;
+    it.done += 1;
+    const payload = { exercise: it.exercise, muscle_group: it.muscle_group, weight_kg: it.weight_kg, reps: it.reps, sets: 1 };
+    state.workouts.unshift({
+      exercise: it.exercise, muscle_group: it.muscle_group, weight_kg: it.weight_kg, reps: it.reps, sets: 1,
+      logged_at: localISO(new Date()), id: 'local-' + Date.now() + Math.random().toString(36).slice(2, 5)
+    });
+    markPRs();
+    saveCache();
+    sendWrite('add_workout', payload).catch(err => toast(err.message, 'err'));
+    startRestTimer(restDuration);
+    haptic('ok');
+    const sheetBox = $('#sheet');
+    const keepScroll = sheetBox ? sheetBox.scrollTop : 0;
+    openSheet(activeSheetHtml(false));
+    if (sheetBox) sheetBox.scrollTop = keepScroll;
+  }
+
+  function finishWorkout() {
+    if (!activeWorkout) return;
+    const pr = activeProgress();
+    if (!pr.done) { closeSheet(); activeWorkout = null; return; }
+    openSheet(activeSheetHtml(true));
+    haptic('ok');
+    const tonnageSum = activeWorkout.items.reduce((s, i) => s + (Number(i.weight_kg) || 0) * (Number(i.reps) || 0) * (Number(i.done) || 0), 0);
+    toast('Тренировка: ' + pr.done + ' подходов · ' + nf.format(Math.round(tonnageSum)) + ' кг', 'ok');
+    saveCache();
+    renderHome();
+  }
+
+  /* ============================================================
+     23. Уведомления
+     ============================================================ */
+  function notifReadIds() {
+    const v = readJSON(LS.notifRead, []);
+    return Array.isArray(v) ? v : [];
+  }
+  function markNotifRead(ids) {
+    const read = new Set(notifReadIds());
+    (ids || []).forEach(id => read.add(id));
+    writeJSON(LS.notifRead, Array.from(read).slice(-200));
+    updateNotifBadge();
+  }
+
+  function computeNotifications() {
+    const out = [];
+    const now = Date.now();
+    if (!state.workouts.length) {
+      out.push({ id: 'first-workout', icon: 'i-bolt', title: 'Запиши первую тренировку', sub: 'Появится серия, объём и рекорды' });
+    } else {
+      const last = Math.max.apply(null, state.workouts.map(w => parseDate(w.logged_at).getTime()));
+      const days = Math.floor((now - last) / 864e5);
+      if (days >= 3) {
+        out.push({ id: 'gap-' + dayKey(new Date()), icon: 'i-dumbbell', title: 'Ты не тренировался ' + days + ' дн.', sub: 'Самое время вернуться в зал' });
+      }
+      const s = streak();
+      if (s >= 7) out.push({ id: 'streak-' + s, icon: 'i-flame', title: 'Серия ' + s + ' дней!', sub: 'Отличная регулярность — так держать' });
+      recordsCache = recordsCache.length ? recordsCache : computeRecords();
+      recordsCache.filter(r => r.recent).slice(0, 3).forEach(r => {
+        out.push({
+          id: 'pr-' + r.key + '-' + dayKey(parseDate(r.date)),
+          icon: 'i-trophy',
+          title: 'Новый рекорд: ' + r.name,
+          sub: '1ПМ ≈ ' + Math.round(r.best) + ' кг' + (r.delta > 0.5 ? ' · +' + nf1.format(r.delta) + ' кг за месяц' : '')
+        });
+      });
+    }
+    const target = num(store.get(LS.target));
+    const cur = currentWeight();
+    if (target && cur) {
+      const diff = round(cur - target, 1);
+      if (Math.abs(diff) <= 1) out.push({ id: 'goal-' + target + '-' + dayKey(new Date()), icon: 'i-target', title: 'Цель по весу достигнута', sub: 'Сейчас ' + nf1.format(cur) + ' кг при цели ' + nf1.format(target) + ' кг' });
+    }
+    return out;
+  }
+
+  function renderNotifications() {
+    const box = $('#notif-list');
+    if (!box) return;
+    const items = computeNotifications();
+    const read = new Set(notifReadIds());
+    if (!items.length) {
+      box.innerHTML = '<div class="empty"><svg><use href="#i-bell"/></svg><b>Всё спокойно</b>Здесь появятся напоминания и рекорды</div>';
+      return;
+    }
+    box.innerHTML = items.map(n =>
+      '<div class="notif-item ' + (read.has(n.id) ? '' : 'unread') + '">' +
+        '<span class="notif-ic"><svg><use href="#' + n.icon + '"/></svg></span>' +
+        '<span class="notif-body"><span class="notif-title">' + esc(n.title) + '</span>' +
+        '<span class="notif-sub">' + esc(n.sub) + '</span></span>' +
+      '</div>'
+    ).join('');
+  }
+
+  function updateNotifBadge() {
+    const items = computeNotifications();
+    const read = new Set(notifReadIds());
+    const unread = items.filter(n => !read.has(n.id)).length;
+    ['#side-profile-dot', '#nav-profile-dot', '#top-bell-dot'].forEach(sel => {
+      const el = $(sel);
+      if (!el) return;
+      if (sel === '#top-bell-dot') el.style.display = unread ? 'block' : 'none';
+      else el.classList.toggle('show', unread > 0);
+    });
+  }
+
+  /* ============================================================
+     24. Цель по весу в сайдбаре
+     ============================================================ */
+  function renderGoalMini() {
+    const el = $('#side-goal');
+    if (!el) return;
+    const target = num(store.get(LS.target));
+    const cur = currentWeight();
+    const oldest = state.weights.length ? num(state.weights[state.weights.length - 1].weight_kg) : null;
+
+    if (!target) {
+      el.innerHTML = '<div class="goal-mini-top"><span>Цель по весу</span><b>не задана</b></div>' +
+        '<div class="sub" style="font-size:11px">Задай её в профиле</div>';
+      return;
+    }
+    if (!cur) {
+      el.innerHTML = '<div class="goal-mini-top"><span>Цель</span><b>' + nf1.format(target) + ' кг</b></div>';
+      return;
+    }
+    const start = oldest || cur;
+    const total = Math.abs(start - target);
+    const passed = Math.abs(start - cur);
+    const pct = total > 0.05 ? Math.min(100, Math.max(0, Math.round(passed / total * 100))) : 100;
+    const left = round(cur - target, 1);
+    el.innerHTML =
+      '<div class="goal-mini-top"><span>До цели</span><b>' + (Math.abs(left) < 0.05 ? 'готово' : nf1.format(Math.abs(left)) + ' кг') + '</b></div>' +
+      '<div class="goal-mini-bar"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="goal-mini-top"><span>' + nf1.format(cur) + ' кг</span><span>цель ' + nf1.format(target) + '</span></div>';
+  }
+
+  /* ============================================================
+     25. Экспорт CSV
+     ============================================================ */
+  function csvCell(v) {
+    const s = String(v == null ? '' : v);
+    return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function exportCSV() {
+    try {
+      const rows = [['Дата', 'Упражнение', 'Группа мышц', 'Вес (кг)', 'Повторы', 'Подходы', 'Тоннаж (кг)']];
+      state.workouts.slice().sort((a, b) => parseDate(a.logged_at) - parseDate(b.logged_at)).forEach(w => {
+        rows.push([
+          String(w.logged_at || '').slice(0, 10),
+          w.exercise || '',
+          GROUPS[w.muscle_group] || w.muscle_group || '',
+          num(w.weight_kg) || 0,
+          num(w.reps) || 0,
+          num(w.sets) || 1,
+          Math.round(tonnage(w))
+        ]);
+      });
+      const csv = '\uFEFF' + rows.map(r => r.map(csvCell).join(';')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'trekfit-' + dayKey(new Date()) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      toast('CSV готов — открывается в Excel и Sheets', 'ok');
+    } catch (e) { toast('Не удалось выгрузить CSV', 'err'); }
+  }
+
+  /* ============================================================
+     26. PWA
+     ============================================================ */
+  function initPWA() {
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  }
+
+  /* ============================================================
+     27. Привязка событий новых разделов
+     ============================================================ */
+  const foodGridEl = $('#food-grid');
+  if (foodGridEl) {
+    foodGridEl.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-food]');
+      if (!card) return;
+      const f = FOOD_LIB[Number(card.dataset.food)];
+      if (!f) return;
+      nutritionAdd(f);
+      haptic('ok');
+      renderNutrition();
+      toast('Добавлено: ' + f.n, 'ok');
+    });
+  }
+
+  const nutritionLogEl = $('#nutrition-log');
+  if (nutritionLogEl) {
+    nutritionLogEl.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-nut-del]');
+      if (!del) return;
+      const all = nutritionAll();
+      const key = dayKey(new Date());
+      all[key] = (all[key] || []).filter(i => i.id !== del.dataset.nutDel);
+      writeJSON(LS.nutrition, all);
+      haptic('light');
+      renderNutrition();
+    });
+  }
+
+  const nutClear = $('#nut-clear');
+  if (nutClear) {
+    nutClear.addEventListener('click', () => {
+      const all = nutritionAll();
+      all[dayKey(new Date())] = [];
+      writeJSON(LS.nutrition, all);
+      renderNutrition();
+      toast('Дневник за сегодня очищен');
+    });
+  }
+
+  const nutForm = $('#nutrition-form');
+  if (nutForm) {
+    nutForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = $('#n-name').value.trim();
+      const kcal = num($('#n-kcal').value) || 0;
+      if (!name) { toast('Укажи название продукта', 'err'); return; }
+      if (!kcal) { toast('Укажи калорийность', 'err'); return; }
+      nutritionAdd({ e: '🍽️', n: name, kcal: kcal, p: num($('#n-p').value) || 0, c: num($('#n-c').value) || 0, f: num($('#n-f').value) || 0 });
+      ['#n-name', '#n-kcal', '#n-p', '#n-c', '#n-f'].forEach(s => { const el = $(s); if (el) el.value = ''; });
+      renderNutrition();
+      toast('Добавлено: ' + name, 'ok');
+    });
+  }
+
+  const recordsSearch = $('#records-search');
+  if (recordsSearch) {
+    recordsSearch.addEventListener('input', () => {
+      clearTimeout(recordsSearch._t);
+      recordsSearch._t = setTimeout(renderRecords, 140);
+    });
+  }
+
+  const recordsListEl = $('#records-list');
+  if (recordsListEl) {
+    recordsListEl.addEventListener('click', (e) => {
+      const row = e.target.closest('[data-record]');
+      if (!row) return;
+      recordsSelected = row.dataset.record;
+      haptic('select');
+      drawRecordsChart();
+    });
+  }
+
+  const programsEl = $('#programs-list');
+  if (programsEl) {
+    programsEl.addEventListener('click', (e) => {
+      const start = e.target.closest('[data-program-start]');
+      const add = e.target.closest('[data-program-add]');
+      if (start) {
+        const p = programsAll()[Number(start.dataset.programStart)];
+        if (p) startWorkout(p.items, p.name);
+        return;
+      }
+      if (add) {
+        const p = programsAll()[Number(add.dataset.programAdd)];
+        if (!p) return;
+        addProgramToLog(p).catch(err => toast(err.message, 'err'));
+      }
+    });
+  }
+
+  const startWorkoutBtn = $('#start-workout-btn');
+  if (startWorkoutBtn) startWorkoutBtn.addEventListener('click', () => startFreeWorkout());
+
+  const saveProgramBtn = $('#save-program-btn');
+  if (saveProgramBtn) saveProgramBtn.addEventListener('click', () => saveLastSessionAsProgram());
+
+  const sheetEl = $('#sheet');
+  if (sheetEl) {
+    sheetEl.addEventListener('click', (e) => {
+      if (e.target.closest('[data-sheet-close]') || e.target.closest('[data-sheet-close-btn]')) { closeSheet(); return; }
+      if (e.target.closest('[data-wo-finish-close]')) { closeSheet(); activeWorkout = null; renderHome(); return; }
+      if (e.target.closest('[data-wo-finish]')) { finishWorkout(); return; }
+      const setBtn = e.target.closest('[data-wo-set]');
+      if (setBtn) { logActiveSet(Number(setBtn.dataset.woSet)); }
+    });
+  }
+  const sheetOverlayEl = $('#sheet-overlay');
+  if (sheetOverlayEl) {
+    sheetOverlayEl.addEventListener('click', (e) => {
+      if (e.target === sheetOverlayEl) closeSheet();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSheet();
+  });
+
+  const bell = $('#top-bell');
+  if (bell) {
+    bell.addEventListener('click', () => {
+      haptic('select');
+      if (state.tab !== 'profile') showTab('profile', true);
+      setTimeout(() => { const el = $('#notif-list'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120);
+    });
+  }
+
+  const readAll = $('#notif-read-all');
+  if (readAll) {
+    readAll.addEventListener('click', () => {
+      markNotifRead(computeNotifications().map(n => n.id));
+      renderNotifications();
+      toast('Уведомления прочитаны', 'ok');
+    });
+  }
+
+  const themeTeal = $('#theme-teal');
+  const themeEnergy = $('#theme-energy');
+  if (themeTeal) themeTeal.addEventListener('click', () => setTheme('teal'));
+  if (themeEnergy) themeEnergy.addEventListener('click', () => setTheme('energy'));
+
+  const csvBtn = $('#export-csv-btn');
+  if (csvBtn) csvBtn.addEventListener('click', exportCSV);
+
+  /* ============================================================
+     28. Загрузка и старт
      ============================================================ */
   async function loadAll() {
     const results = await Promise.all([
@@ -1875,12 +3083,17 @@
     state.workouts = (results[1] && results[1].workouts) || [];
     setWeights(results[2] && results[2].entries);
     markPRs();
+    saveCache();
   }
 
   initChartDefaults();
+  applyTheme(store.get(LS.theme) || 'teal');
+  initPWA();
 
   if (!isTelegram && !syncCode) {
     $('#auth').classList.remove('hidden');
+    const authInput = $('#sync-input');
+    if (authInput) setTimeout(() => { try { authInput.focus(); } catch (_) {} }, 220);
     return;
   }
 
@@ -1888,16 +3101,21 @@
   buildExerciseSelect();
   if (!isTelegram) $('#logout-btn').classList.remove('hidden');
 
+  // Мгновенный рендер из кэша, затем тихое обновление с сервера
+  const hadCache = loadCache();
+
   let startTab = 'home';
   try { startTab = sessionStorage.getItem('trek_tab') || 'home'; } catch (_) {}
   showTab(startTab, false);
+  flushQueue().catch(() => {});
 
   loadAll().then(() => {
     syncExerciseUI(true);
     renderTab(state.tab);
   }).catch((err) => {
     console.error(err);
-    toast('Не удалось загрузить данные: ' + err.message, 'err');
+    if (!hadCache) toast('Не удалось загрузить данные: ' + err.message, 'err');
+    else toast('Показаны сохранённые данные — нет связи', 'err');
   });
 })();
 </script>
