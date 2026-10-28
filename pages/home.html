@@ -1,0 +1,99 @@
+<!-- Trek Fit · вкладка «home» -->
+<!-- Фрагмент: подключается в index2.html через loader (fetch → #view) -->
+
+<section class="panel active" id="panel-home">
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label"><svg><use href="#i-scale"/></svg>Вес</div>
+      <div class="kpi-value num" id="st-weight">—</div>
+      <div class="kpi-foot" id="st-weight-delta">&nbsp;</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label"><svg><use href="#i-calendar"/></svg>За 7 дней</div>
+      <div class="kpi-value num" id="st-week">—</div>
+      <div class="kpi-foot">тренировочных дней</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label"><svg><use href="#i-flame"/></svg>Серия</div>
+      <div class="kpi-value num" id="st-streak">—</div>
+      <div class="kpi-foot">дней подряд</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label"><svg><use href="#i-target"/></svg>Калории</div>
+      <div class="kpi-value num" id="st-kcal">—</div>
+      <div class="kpi-foot" id="st-kcal-note">цель на день</div>
+    </div>
+  </div>
+
+  <div class="eyebrow">Сегодня<span class="link" id="today-date">—</span></div>
+  <div class="card flat">
+    <div class="card-head" style="margin-bottom:8px">
+      <div>
+        <h3 id="today-title">Тренировки пока нет</h3>
+        <div class="sub" id="today-sub">Запиши первый подход — начнём считать объём</div>
+      </div>
+      <span class="row-badge" id="today-sets">0</span>
+    </div>
+    <div class="grid-2" style="gap:8px">
+      <button class="btn sm ghost" data-goto="workouts" type="button"><svg><use href="#i-plus"/></svg>Добавить подход</button>
+      <button class="btn sm ghost" data-goto="weight" type="button"><svg><use href="#i-scale"/></svg>Добавить вес</button>
+    </div>
+    
+    <!-- Утренний спортпит (чеклист на сегодня) -->
+    <div style="margin-top:10px; display:flex; gap:8px;">
+      <button class="chip" id="chk-creatine" type="button" style="flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
+        <svg style="width:14px;height:14px"><use href="#i-check"/></svg><span>Креатин утром</span>
+      </button>
+      <button class="chip" id="chk-protein" type="button" style="flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
+        <svg style="width:14px;height:14px"><use href="#i-check"/></svg><span>Протеин утром</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="eyebrow">Динамика веса
+    <span class="segmented" id="home-range">
+      <button data-range="30" class="active" type="button">30 дн</button>
+      <button data-range="90" type="button">90 дн</button>
+      <button data-range="all" type="button">Всё</button>
+    </span>
+  </div>
+  <div class="card">
+    <div class="chart-box" id="home-chart-wrap"><canvas id="home-chart" role="img" aria-label="График веса"></canvas></div>
+    <div class="chart-legend">
+      <span><i style="background:#2dd4bf"></i>Вес</span>
+      <span><i style="background:#64748b"></i>Среднее за 7 записей</span>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:12px">
+    <div>
+      <div class="eyebrow">Объём по неделям</div>
+      <div class="card">
+        <div class="chart-box"><canvas id="volume-chart" role="img" aria-label="Объём по неделям"></canvas></div>
+        <div class="chart-legend"><span><i style="background:#6366f1"></i>Тоннаж, кг</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="eyebrow">Баланс мышц · 30 дней</div>
+      <div class="card">
+        <div class="balance" id="muscle-balance"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="eyebrow">Календарь активности
+    <span class="link" data-goto="workouts" role="button" tabindex="0">Все тренировки</span>
+  </div>
+  <div class="card">
+    <div class="heatmap" id="heatmap" aria-label="Активность за 12 недель"></div>
+    <div class="heatmap-legend">
+      <span>меньше</span>
+      <span class="heat"></span><span class="heat l1"></span><span class="heat l2"></span><span class="heat l3"></span><span class="heat l4"></span>
+      <span>больше</span>
+    </div>
+  </div>
+
+  <div class="eyebrow">Последние тренировки</div>
+  <div id="home-sessions"></div>
+</section>

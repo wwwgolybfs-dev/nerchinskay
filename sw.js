@@ -1,13 +1,23 @@
 /* Trek Fit — service worker: офлайн-кэш оболочки приложения */
-const CACHE = 'trekfit-v1';
+const CACHE = 'trekfit-v2';
 const ASSETS = [
   './',
   './index2.html',
-  './style.css?v=7',
+  './style.css?v=8',
+  './shell.css?v=1',
+  './shell.js',
+  './app.js',
   './manifest.json',
   './icon.svg',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './pages/home.html',
+  './pages/workouts.html',
+  './pages/nutrition.html',
+  './pages/weight.html',
+  './pages/records.html',
+  './pages/calc.html',
+  './pages/profile.html'
 ];
 
 self.addEventListener('install', (event) => {

@@ -1,0 +1,78 @@
+<!-- Trek Fit · вкладка «nutrition» -->
+<!-- Фрагмент: подключается в index2.html через loader (fetch → #view) -->
+
+<section class="panel" id="panel-nutrition">
+  <div class="eyebrow">Сегодня <span class="link" id="nut-date">—</span></div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label"><svg><use href="#i-flame"/></svg>Калории</div>
+      <div class="kpi-value num" id="nut-kcal">0</div>
+      <div class="kpi-foot" id="nut-kcal-note">из цели</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Белки</div>
+      <div class="kpi-value num" id="nut-protein">0</div>
+      <div class="kpi-foot">грамм</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Углеводы</div>
+      <div class="kpi-value num" id="nut-carbs">0</div>
+      <div class="kpi-foot">грамм</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Жиры</div>
+      <div class="kpi-value num" id="nut-fat">0</div>
+      <div class="kpi-foot">грамм</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:12px">
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Баланс БЖУ</h3><div class="sub" id="nut-goal-note">—</div></div>
+      </div>
+      <div class="macro-ring"><canvas id="macros-chart" role="img" aria-label="Распределение БЖУ"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Быстрое добавление</h3><div class="sub">Нажми — добавится порция</div></div>
+      </div>
+      <div class="nutrition-grid" id="food-grid"></div>
+    </div>
+  </div>
+
+  <div class="eyebrow">Съедено сегодня <span class="link" id="nut-clear" role="button" tabindex="0">Очистить</span></div>
+  <div class="nutrition-log" id="nutrition-log"></div>
+
+  <div class="eyebrow">Добавить вручную</div>
+  <div class="card">
+    <form id="nutrition-form" novalidate>
+      <div class="row">
+        <div class="field">
+          <label for="n-name">Продукт</label>
+          <input id="n-name" type="text" maxlength="60" placeholder="Например, гречка" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="n-kcal">Калории</label>
+          <input id="n-kcal" type="number" inputmode="numeric" min="0" max="5000" step="1" placeholder="200">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="n-p">Белки, г</label>
+          <input id="n-p" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="n-c">Углеводы, г</label>
+          <input id="n-c" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="n-f">Жиры, г</label>
+          <input id="n-f" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
+        </div>
+      </div>
+      <button class="btn" type="submit"><svg><use href="#i-plus"/></svg>Добавить</button>
+    </form>
+  </div>
+</section>

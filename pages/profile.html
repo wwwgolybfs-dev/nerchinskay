@@ -1,0 +1,85 @@
+<!-- Trek Fit · вкладка «profile» -->
+<!-- Фрагмент: подключается в index2.html через loader (fetch → #view) -->
+
+<section class="panel" id="panel-profile">
+  <div class="split">
+    <div>
+      <div class="eyebrow">Мои данные</div>
+      <div class="card">
+        <form id="profile-form" novalidate>
+          <div class="row">
+            <div class="field">
+              <label for="p-weight">Вес, кг</label>
+              <input id="p-weight" name="weight_kg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="78.5">
+            </div>
+            <div class="field">
+              <label for="p-height">Рост, см</label>
+              <input id="p-height" name="height_cm" type="number" inputmode="numeric" step="1" min="100" max="250" placeholder="180">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="p-age">Возраст</label>
+              <input id="p-age" name="age" type="number" inputmode="numeric" step="1" min="10" max="100" placeholder="28">
+            </div>
+            <div class="field">
+              <label for="p-gender">Пол</label>
+              <select id="p-gender" name="gender">
+                <option value="male">Мужской</option>
+                <option value="female">Женский</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="p-goal">Цель</label>
+            <select id="p-goal" name="goal">
+              <option value="mass">Набор массы</option>
+              <option value="cut">Похудение</option>
+              <option value="maintain">Поддержание формы</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="p-target">Целевой вес, кг</label>
+            <input id="p-target" name="target_weight" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="75">
+            <div class="sub" style="margin-top:4px">Показываем прогресс к цели в сайдбаре</div>
+          </div>
+          <button class="btn" type="submit"><svg><use href="#i-check"/></svg>Сохранить профиль</button>
+        </form>
+      </div>
+    </div>
+
+    <div>
+      <div class="eyebrow">Вход на сайте</div>
+      <div class="card">
+        <div class="sub">Код для браузера вне Telegram. Никому его не передавай — это доступ к твоим данным.</div>
+        <div class="code-box" id="sync-code-display">Не создан</div>
+        <button class="btn ghost" id="gen-code-btn" type="button" style="margin-top:12px"><svg><use href="#i-refresh"/></svg>Сгенерировать код</button>
+        <button class="btn ghost hidden" id="copy-code-btn" type="button"><svg><use href="#i-copy"/></svg>Скопировать</button>
+      </div>
+
+      <div class="eyebrow">Уведомления <span class="link" id="notif-read-all" role="button" tabindex="0">Прочитать все</span></div>
+      <div class="card">
+        <div class="notif-list" id="notif-list"></div>
+      </div>
+
+      <div class="eyebrow">Оформление</div>
+      <div class="card">
+        <div class="sub">Акцентный цвет интерфейса</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost sm" id="theme-teal" type="button">Спокойная</button>
+          <button class="btn ghost sm" id="theme-energy" type="button">Энергия</button>
+        </div>
+      </div>
+
+      <div class="eyebrow">Данные</div>
+      <div class="card">
+        <div class="sub">Скачать копию всех записей — пригодится для таблиц и бэкапа.</div>
+        <button class="btn ghost" id="export-btn" type="button" style="margin-top:12px"><svg><use href="#i-download"/></svg>Скачать JSON</button>
+        <button class="btn ghost" id="export-csv-btn" type="button" style="margin-top:8px"><svg><use href="#i-csv"/></svg>Скачать CSV</button>
+        <button class="btn danger hidden" id="logout-btn" type="button" style="margin-top:8px"><svg><use href="#i-logout"/></svg>Выйти из аккаунта</button>
+      </div>
+
+      <div class="sub" style="margin-top:14px; text-align:center">Trek Fit · сборка 3.2</div>
+    </div>
+  </div>
+</section>

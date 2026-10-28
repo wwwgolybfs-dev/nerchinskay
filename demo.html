@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Trek Fit — демо-режим</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #e9eef7; background: #080b12;
+  }
+  .box {
+    max-width: 460px; padding: 28px; border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, .16); background: #0f1420;
+  }
+  h1 { margin: 0 0 10px; font-size: 20px; }
+  p { margin: 0 0 12px; font-size: 13.5px; line-height: 1.5; color: #8a97ab; }
+  code { padding: 1px 5px; border-radius: 6px; background: rgba(148, 163, 184, .14); }
+  a, button {
+    display: inline-block; margin-top: 8px; padding: 10px 16px; border: 0; border-radius: 10px;
+    font: inherit; font-weight: 650; cursor: pointer; text-decoration: none;
+    color: #04201c; background: linear-gradient(135deg, #2dd4bf, #7dd3fc);
+  }
+  .warn { color: #fbbf24; }
+</style>
+</head>
+<body>
+<div class="box" id="box">
+  <h1>Демо-режим Trek Fit</h1>
+  <p id="msg">Загружаю демонстрационные данные…</p>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('box');
+  var msg = document.getElementById('msg');
+  var isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  var params = new URLSearchParams(location.search);
+  var tab = (params.get('tab') || 'home').replace(/[^a-z]/g, '');
+
+  function stop(text, hint) {
+    msg.innerHTML = text;
+    if (hint) {
+      var a = document.createElement('a');
+      a.href = 'index2.html';
+      a.textContent = 'Открыть приложение';
+      box.appendChild(document.createElement('br'));
+      box.appendChild(a);
+    }
+  }
+
+  /* Демо пишет данные в localStorage того же origin — на боевом домене это опасно */
+  if (!isLocal) {
+    msg.className = 'warn';
+    stop('Демо-режим работает только на локальном сервере (localhost или 127.0.0.1). ' +
+         'На этом домене он отключён, чтобы не перезаписать твои настоящие данные.', true);
+    return;
+  }
+
+  var now = new Date();
+  function iso(daysAgo, hh) {
+    var d = new Date(now);
+    d.setDate(d.getDate() - daysAgo);
+    d.setHours(hh || 18, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  var plan = [
+    ['Жим штанги лёжа', 'chest', 80, 8, 4],
+    ['Жим гантелей лёжа', 'chest', 30, 10, 3],
+    ['Подтягивания', 'back', 0, 9, 3],
+    ['Тяга верхнего блока', 'back', 55, 12, 3],
+    ['Становая тяга', 'back', 110, 5, 3],
+    ['Приседания со штангой', 'legs', 100, 6, 4],
+    ['Жим ногами', 'legs', 160, 10, 3],
+    ['Жим гантелей сидя', 'shoulders', 24, 10, 3],
+    ['Махи гантелями в стороны', 'shoulders', 12, 14, 3],
+    ['Сгибание на бицепс', 'biceps', 20, 12, 3],
+    ['Разгибание на трицепс', 'triceps', 25, 12, 3],
+    ['Планка', 'abs', 0, 60, 3]
+  ];
+
+  var workouts = [];
+  for (var day = 0; day < 34; day += 2) {
+    for (var k = 0; k < 4; k++) {
+      var p = plan[(day + k * 3) % plan.length];
+      workouts.push({
+        exercise: p[0],
+        muscle_group: p[1],
+        weight_kg: p[2] ? p[2] + (day % 6) : null,
+        reps: p[3],
+        sets: p[4],
+        logged_at: iso(day, 17 + k)
+      });
+    }
+  }
+
+  var weights = [];
+  for (var w = 0; w < 12; w++) {
+    weights.push({ weight_kg: (82.4 - w * 0.34).toFixed(1), logged_at: iso(33 - w * 3, 8) });
+  }
+
+  try {
+    localStorage.setItem('trek_sync_code', 'DEMO-0000');
+    localStorage.setItem('trek_target_weight', '75');
+    localStorage.setItem('trek_cache_v1', JSON.stringify({
+      at: Date.now(),
+      profile: { weight_kg: 78.6, height_cm: 182, age: 29, gender: 'male', goal: 'cut', sync_code: 'DEMO-0000' },
+      workouts: workouts,
+      weights: weights
+    }));
+    localStorage.removeItem('trek_queue_v1');
+  } catch (e) {
+    stop('Браузер не дал записать демо-данные в localStorage.', true);
+    return;
+  }
+
+  location.replace('index2.html#/' + tab);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!-- Trek Fit · вкладка «weight» -->
+<!-- Фрагмент: подключается в index2.html через loader (fetch → #view) -->
+
+<section class="panel" id="panel-weight">
+  <div class="split">
+    <div class="sticky">
+      <div class="eyebrow">Новая запись</div>
+      <div class="card">
+        <form id="weight-form" novalidate>
+          <div class="field">
+            <label for="b-weight">Вес, кг</label>
+            <div class="stepper">
+              <button type="button" data-step="-0.1" data-for="b-weight" aria-label="Уменьшить вес"><svg style="width:14px;height:14px"><use href="#i-minus"/></svg></button>
+              <input id="b-weight" name="weight_kg" type="number" inputmode="decimal" step="0.1" min="20" max="400" placeholder="78.5" required>
+              <button type="button" data-step="0.1" data-for="b-weight" aria-label="Увеличить вес"><svg style="width:14px;height:14px"><use href="#i-plus"/></svg></button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="b-fat">Жир, %</label>
+              <input id="b-fat" name="body_fat_percent" type="number" inputmode="decimal" step="0.1" min="0" max="70" placeholder="—">
+            </div>
+            <div class="field">
+              <label for="b-muscle">Мышцы, кг</label>
+              <input id="b-muscle" name="muscle_mass_kg" type="number" inputmode="decimal" step="0.1" min="0" max="200" placeholder="—">
+            </div>
+          </div>
+          <button class="btn" type="submit"><svg><use href="#i-check"/></svg>Сохранить вес</button>
+        </form>
+      </div>
+
+      <div class="eyebrow">Темп</div>
+      <div class="card tight">
+        <div class="sub">Изменение за последние 14 дней</div>
+        <div class="kpi-value num" id="w-rate" style="font-size:22px;margin-top:6px">—</div>
+        <div class="kpi-foot" id="w-rate-note">нужно минимум две записи</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Вес и состав тела</h3>
+            <div class="sub" id="w-sub">—</div>
+          </div>
+          <span class="segmented" id="weight-range">
+            <button data-range="30" class="active" type="button">30 дн</button>
+            <button data-range="90" type="button">90 дн</button>
+            <button data-range="all" type="button">Всё</button>
+          </span>
+        </div>
+        <div class="chart-box tall" id="weight-chart-wrap"><canvas id="weight-chart" role="img" aria-label="График веса"></canvas></div>
+        <div class="chart-legend">
+          <span><i style="background:#2dd4bf"></i>Вес</span>
+          <span><i style="background:#64748b"></i>Среднее за 7 записей</span>
+        </div>
+      </div>
+
+      <div class="eyebrow">История замеров</div>
+      <div class="list" id="weight-list"></div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,79 @@
+<!-- Trek Fit · вкладка «calc» -->
+<!-- Фрагмент: подключается в index2.html через loader (fetch → #view) -->
+
+<section class="panel" id="panel-calc">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Норма белка</h3><div class="sub">1,6–2,2 г на кг веса</div></div>
+        <span class="tag"><svg style="width:13px;height:13px"><use href="#i-activity"/></svg></span>
+      </div>
+      <div class="kpi-value num" id="c-protein">—</div>
+      <div class="kpi-foot" id="c-protein-note">—</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Спортпит утром</h3><div class="sub">Креатин и протеин</div></div>
+        <span class="tag"><svg style="width:13px;height:13px"><use href="#i-flame"/></svg></span>
+      </div>
+      <div class="kpi-value num" id="c-supps">—</div>
+      <div class="kpi-foot" id="c-supps-note">укажи вес в профиле</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Вода</h3><div class="sub">30–35 мл на кг веса</div></div>
+        <span class="tag"><svg style="width:13px;height:13px"><use href="#i-droplet"/></svg></span>
+      </div>
+      <div class="kpi-value num" id="c-water">—</div>
+      <div class="kpi-foot">в день, включая еду и тренировки</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Калории</h3><div class="sub">Базовый расход (BMR) и норма</div></div>
+        <span class="tag"><svg style="width:13px;height:13px"><use href="#i-flame"/></svg></span>
+      </div>
+      <div class="kpi-value num" id="c-tdee">—</div>
+      <div class="kpi-foot" id="c-tdee-note">—</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Индекс массы тела</h3><div class="sub">ИМТ и коридор веса</div></div>
+        <span class="tag"><svg style="width:13px;height:13px"><use href="#i-scale"/></svg></span>
+      </div>
+      <div class="kpi-value num" id="c-bmi">—</div>
+      <div class="kpi-foot" id="c-bmi-note">—</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Максимум на 1 повтор</h3><div class="sub">Формула Эпли</div></div>
+        <span class="tag"><svg style="width:13px;height:13px"><use href="#i-dumbbell"/></svg></span>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <div class="field">
+          <label for="rm-weight">Вес, кг</label>
+          <input id="rm-weight" type="number" inputmode="decimal" step="0.5" min="0" placeholder="60">
+        </div>
+        <div class="field">
+          <label for="rm-reps">Повторы</label>
+          <input id="rm-reps" type="number" inputmode="numeric" step="1" min="1" max="20" placeholder="8">
+        </div>
+      </div>
+      <div class="kpi-value num" id="c-rm">—</div>
+      <div class="kpi-foot">оценка 1ПМ по введённым данным</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h3>БЖУ</h3><div class="sub">Раскладка под текущую цель</div></div>
+        <span class="tag"><svg style="width:13px;height:13px"><use href="#i-target"/></svg></span>
+      </div>
+      <div class="kpi-value num" id="c-macros">—</div>
+      <div class="kpi-foot" id="c-macros-note">—</div>
+    </div>
+  </div>
+</section>

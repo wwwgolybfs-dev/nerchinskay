@@ -1,0 +1,37 @@
+<!-- Trek Fit · вкладка «records» -->
+<!-- Фрагмент: подключается в index2.html через loader (fetch → #view) -->
+
+<section class="panel" id="panel-records">
+  <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi">
+      <div class="kpi-label"><svg><use href="#i-trophy"/></svg>Упражнений</div>
+      <div class="kpi-value num" id="rec-count">—</div>
+      <div class="kpi-foot">с личным рекордом</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Рекордов за 30 дней</div>
+      <div class="kpi-value num" id="rec-recent">—</div>
+      <div class="kpi-foot">новых максимумов</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Лучший 1ПМ</div>
+      <div class="kpi-value num" id="rec-top">—</div>
+      <div class="kpi-foot" id="rec-top-note">—</div>
+    </div>
+  </div>
+
+  <div class="eyebrow">Личные рекорды</div>
+  <div class="card">
+    <div class="search" style="margin-bottom:10px">
+      <svg><use href="#i-search"/></svg>
+      <input id="records-search" type="search" placeholder="Поиск упражнения" autocomplete="off" aria-label="Поиск по упражнениям">
+    </div>
+    <div id="records-list"></div>
+  </div>
+
+  <div class="eyebrow">Динамика силы <span class="link" id="rec-chart-note">—</span></div>
+  <div class="card">
+    <div class="chart-box"><canvas id="records-chart" role="img" aria-label="Рост силовых показателей"></canvas></div>
+    <div class="chart-legend"><span><i style="background:#2dd4bf"></i>Оценка 1ПМ, кг</span></div>
+  </div>
+</section>

@@ -1,0 +1,488 @@
+/* ==========================================================================
+   Trek Fit — shell.css
+   Оболочка-переходник: постоянная левая панель + контент вкладки.
+   Панели (pages/*.html) остаются на стилях style.css, здесь — только каркас.
+   ========================================================================== */
+
+:root {
+  --side-w: 278px;
+  --app-pad: 26px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* ---------- 1. Сетка приложения ---------- */
+.app {
+  display: grid;
+  grid-template-columns: var(--side-w) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+/* ---------- 2. Левая панель ---------- */
+.app-side {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: 20px 14px 16px;
+  background:
+    radial-gradient(420px 220px at 12% -6%, rgba(45, 212, 191, .10), transparent 70%),
+    linear-gradient(180deg, rgba(14, 19, 32, .96), rgba(7, 10, 17, .98));
+  border-right: 1px solid var(--line);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.app-side::-webkit-scrollbar {
+  width: 0;
+}
+
+/* Бренд */
+.side-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 4px 8px 6px;
+}
+
+.side-brand .mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  color: #04201c;
+  background: linear-gradient(150deg, var(--accent), #7dd3fc);
+  box-shadow: 0 10px 26px rgba(45, 212, 191, .30);
+}
+
+.side-brand .mark svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 2;
+}
+
+.side-brand .word {
+  font-size: 17px;
+  font-weight: 850;
+  letter-spacing: -.3px;
+  line-height: 1.1;
+}
+
+.side-brand .word span {
+  color: var(--accent);
+}
+
+.side-brand .kicker {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* Подписи групп и пункты меню */
+.side-label {
+  margin: 18px 0 7px;
+  padding-left: 11px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .17em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.app-nav {
+  display: grid;
+  gap: 3px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 650;
+  text-align: left;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.nav-item .nav-ic {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: rgba(148, 163, 184, .07);
+  color: var(--muted);
+  transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+.nav-item .nav-ic svg {
+  width: 17px;
+  height: 17px;
+}
+
+.nav-item .nav-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-item:hover {
+  background: rgba(148, 163, 184, .06);
+  color: var(--text);
+}
+
+.nav-item:hover .nav-ic {
+  background: rgba(148, 163, 184, .13);
+  color: var(--text);
+}
+
+.nav-item.active {
+  color: #eafffb;
+  border-color: rgba(45, 212, 191, .22);
+  background: linear-gradient(90deg, var(--accent-soft), rgba(45, 212, 191, 0));
+  box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+.nav-item.active .nav-ic {
+  background: var(--accent);
+  color: #04201c;
+  box-shadow: 0 8px 20px rgba(45, 212, 191, .34);
+}
+
+.nav-item .dot {
+  margin-left: auto;
+}
+
+/* Подвал панели */
+.side-foot {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.side-goal {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(148, 163, 184, .045);
+}
+
+.side-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(148, 163, 184, .045);
+}
+
+.side-user .avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+
+.side-user .u-info {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.side-user .u-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.side-user .u-meta {
+  margin-top: 1px;
+  font-size: 10.5px;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 3. Правая часть: топбар + контент ---------- */
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100dvh;
+}
+
+.app-top {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px var(--app-pad);
+  background: rgba(7, 10, 17, .78);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.app-burger {
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(148, 163, 184, .06);
+  transition: background .18s ease;
+}
+
+.app-burger:hover {
+  background: rgba(148, 163, 184, .12);
+}
+
+.app-burger span {
+  display: block;
+  width: 15px;
+  height: 1.6px;
+  margin: 1.9px 0;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.app-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: .02em;
+  color: var(--dim);
+  min-width: 0;
+}
+
+.app-crumbs .sep {
+  opacity: .5;
+}
+
+.app-crumbs b {
+  color: var(--text);
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.app-content {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 22px var(--app-pad) 56px;
+}
+
+/* Заголовок страницы (живёт в оболочке, меняется навигацией) */
+.app-content .page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+}
+
+.app-content .page-head h1 {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -.6px;
+  line-height: 1.15;
+}
+
+.app-content .page-head p {
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Область вкладки */
+.view {
+  min-height: 240px;
+}
+
+.view > .panel {
+  animation: view-in .26s ease both;
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view > .panel {
+    animation: none;
+  }
+}
+
+/* Скелетон загрузки */
+.view-loading {
+  display: grid;
+  gap: 12px;
+}
+
+.view-loading i {
+  display: block;
+  height: 74px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, .07), rgba(148, 163, 184, .14), rgba(148, 163, 184, .07));
+  background-size: 220% 100%;
+  animation: skeleton 1.4s linear infinite;
+}
+
+@keyframes skeleton {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+/* ---------- 4. Затемнение под панелью ---------- */
+.app-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(3, 6, 12, .62);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .24s ease;
+}
+
+.app-scrim.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---------- 5. Адаптив ---------- */
+@media (max-width: 1200px) {
+  :root {
+    --side-w: 258px;
+    --app-pad: 22px;
+  }
+}
+
+@media (max-width: 980px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-side {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 70;
+    width: min(86vw, 318px);
+    height: 100dvh;
+    padding-bottom: calc(16px + var(--safe-b));
+    transform: translateX(-102%);
+    transition: transform .28s cubic-bezier(.32, .9, .28, 1);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .62);
+  }
+
+  .app-side.open {
+    transform: none;
+  }
+
+  .app-burger {
+    display: grid;
+  }
+
+  .app-scrim {
+    display: block;
+  }
+
+  .app-top {
+    padding: calc(10px + var(--safe-t)) 14px 10px;
+  }
+
+  .app-crumbs {
+    font-size: 11px;
+  }
+
+  .app-content {
+    padding: 16px 14px 56px;
+  }
+
+  .app-content .page-head {
+    display: block;
+    margin-bottom: 14px;
+  }
+
+  .app-content .page-head h1 {
+    font-size: 23px;
+  }
+
+  .page-actions {
+    margin-top: 12px;
+  }
+}
+
+/* На «Профиле» быстрые действия не нужны */
+body[data-tab="profile"] .page-actions {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .app-content .page-head h1 {
+    font-size: 21px;
+  }
+}
+
+/* ---------- 6. Мелочи ---------- */
+.app code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, .12);
+  font-size: .92em;
+}
