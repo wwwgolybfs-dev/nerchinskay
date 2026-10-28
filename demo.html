@@ -102,6 +102,11 @@
     weights.push({ weight_kg: (82.4 - w * 0.34).toFixed(1), logged_at: iso(33 - w * 3, 8) });
   }
 
+  var todayKey = (function () {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  })();
+
   try {
     localStorage.setItem('trek_sync_code', 'DEMO-0000');
     localStorage.setItem('trek_target_weight', '75');
@@ -111,6 +116,15 @@
       workouts: workouts,
       weights: weights
     }));
+    localStorage.setItem('trek_water_v1', JSON.stringify({ [todayKey]: 1200 }));
+    localStorage.setItem('trek_nutrition_v1', JSON.stringify({
+      [todayKey]: [
+        { id: 'demo1', e: '🍗', n: 'Куриная грудка', p: 46 },
+        { id: 'demo2', e: '🧀', n: 'Творог 5%', p: 34 },
+        { id: 'demo3', e: '🥤', n: 'Протеин', p: 24 }
+      ]
+    }));
+    localStorage.setItem('supp_cr_' + todayKey, '1');
     localStorage.removeItem('trek_queue_v1');
   } catch (e) {
     stop('Браузер не дал записать демо-данные в localStorage.', true);

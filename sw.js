@@ -1,9 +1,9 @@
 /* Trek Fit — service worker: офлайн-кэш оболочки приложения */
-const CACHE = 'trekfit-v2';
+const CACHE = 'trekfit-v3';
 const ASSETS = [
   './',
   './index2.html',
-  './style.css?v=8',
+  './style.css?v=9',
   './shell.css?v=1',
   './shell.js',
   './app.js',

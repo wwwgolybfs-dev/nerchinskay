@@ -4,36 +4,64 @@
 <section class="panel" id="panel-nutrition">
   <div class="eyebrow">Сегодня <span class="link" id="nut-date">—</span></div>
 
-  <div class="kpis">
+  <div class="kpis kpis-3">
     <div class="kpi">
-      <div class="kpi-label"><svg><use href="#i-flame"/></svg>Калории</div>
-      <div class="kpi-value num" id="nut-kcal">0</div>
-      <div class="kpi-foot" id="nut-kcal-note">из цели</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Белки</div>
+      <div class="kpi-label"><svg><use href="#i-apple"/></svg>Белки</div>
       <div class="kpi-value num" id="nut-protein">0</div>
-      <div class="kpi-foot">грамм</div>
+      <div class="kpi-foot" id="nut-protein-note">грамм</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Углеводы</div>
-      <div class="kpi-value num" id="nut-carbs">0</div>
-      <div class="kpi-foot">грамм</div>
+      <div class="kpi-label"><svg><use href="#i-bolt"/></svg>Спортпит</div>
+      <div class="kpi-value num" id="nut-supps">0<small> / 2</small></div>
+      <div class="kpi-foot">креатин и протеин</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Жиры</div>
-      <div class="kpi-value num" id="nut-fat">0</div>
-      <div class="kpi-foot">грамм</div>
+      <div class="kpi-label"><svg><use href="#i-droplet"/></svg>Вода</div>
+      <div class="kpi-value num" id="nut-water">0</div>
+      <div class="kpi-foot" id="nut-water-note">мл</div>
     </div>
   </div>
 
   <div class="grid-2" style="margin-top:12px">
     <div class="card">
       <div class="card-head">
-        <div><h3>Баланс БЖУ</h3><div class="sub" id="nut-goal-note">—</div></div>
+        <div><h3>Белок за день</h3><div class="sub" id="nut-goal-note">—</div></div>
+        <span class="tag" id="nut-protein-pct">0%</span>
       </div>
-      <div class="macro-ring"><canvas id="macros-chart" role="img" aria-label="Распределение БЖУ"></canvas></div>
+      <div class="metric-bar"><span id="nut-protein-bar" style="width:0%"></span></div>
+      <div class="metric-legend" id="nut-protein-left">—</div>
     </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Вода</h3><div class="sub" id="water-goal-note">—</div></div>
+        <span class="link" id="water-reset" role="button" tabindex="0">Сброс</span>
+      </div>
+      <div class="metric-bar water"><span id="nut-water-bar" style="width:0%"></span></div>
+      <div class="water-btns">
+        <button class="btn sm ghost" data-water="200" type="button">+200 мл</button>
+        <button class="btn sm ghost" data-water="250" type="button">+250 мл</button>
+        <button class="btn sm ghost" data-water="500" type="button">+500 мл</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:12px;align-items:start">
+    <div class="card">
+      <div class="card-head">
+        <div><h3>Спортпит</h3><div class="sub">Отметь, если принял утром</div></div>
+      </div>
+      <div class="supp-row">
+        <button class="chip" data-supp="cr" type="button">
+          <svg style="width:14px;height:14px"><use href="#i-check"/></svg><span>Креатин</span>
+        </button>
+        <button class="chip" data-supp="pr" type="button">
+          <svg style="width:14px;height:14px"><use href="#i-check"/></svg><span>Протеин</span>
+        </button>
+      </div>
+      <div class="sub" id="supp-hint" style="margin-top:10px">—</div>
+    </div>
+
     <div class="card">
       <div class="card-head">
         <div><h3>Быстрое добавление</h3><div class="sub">Нажми — добавится порция</div></div>
@@ -54,22 +82,8 @@
           <input id="n-name" type="text" maxlength="60" placeholder="Например, гречка" autocomplete="off">
         </div>
         <div class="field">
-          <label for="n-kcal">Калории</label>
-          <input id="n-kcal" type="number" inputmode="numeric" min="0" max="5000" step="1" placeholder="200">
-        </div>
-      </div>
-      <div class="row">
-        <div class="field">
           <label for="n-p">Белки, г</label>
           <input id="n-p" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
-        </div>
-        <div class="field">
-          <label for="n-c">Углеводы, г</label>
-          <input id="n-c" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
-        </div>
-        <div class="field">
-          <label for="n-f">Жиры, г</label>
-          <input id="n-f" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="0">
         </div>
       </div>
       <button class="btn" type="submit"><svg><use href="#i-plus"/></svg>Добавить</button>

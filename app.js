@@ -141,11 +141,6 @@
   const num = (v) => (v === '' || v === null || v === undefined || isNaN(Number(v))) ? null : Number(v);
   const e1rm = (w, r) => (w > 0 && r > 0) ? (r === 1 ? w : w * (1 + r / 30)) : 0;
   const setCount = (w) => (num(w.sets) || 1);
-  const tonnage = (w) => {
-    const weight = num(w.weight_kg) || 0;
-    const reps = num(w.reps) || 0;
-    return weight * reps * setCount(w);
-  };
 
   function setWeights(entries) {
     state.weights = (entries || []).slice().sort((a, b) => parseDate(b.logged_at) - parseDate(a.logged_at));
@@ -156,21 +151,18 @@
     return state.profile ? num(state.profile.weight_kg) : null;
   }
 
-  function tdee(p) {
-    if (!p) return null;
-    const w = num(p.weight_kg) || currentWeight();
-    const h = num(p.height_cm), a = num(p.age);
-    if (!w || !h || !a) return null;
-    const base = 10 * w + 6.25 * h - 5 * a + (p.gender === 'female' ? -161 : 5);
-    return Math.round(base * 1.55);
+  // Норма белка: 1,6–2,2 г/кг, для прогресс-бара берём 1,8 г/кг
+  function proteinTarget(w) {
+    const weight = w || currentWeight();
+    if (!weight) return null;
+    return { min: Math.round(weight * 1.6), max: Math.round(weight * 2.2), goal: Math.round(weight * 1.8) };
   }
 
-  function goalKcal(p) {
-    const t = tdee(p);
-    if (!t) return null;
-    if ((p && p.goal) === 'mass') return t + 350;
-    if ((p && p.goal) === 'cut') return t - 450;
-    return t;
+  // Вода: 30–35 мл/кг, для бара — 33 мл/кг
+  function waterTarget(w) {
+    const weight = w || currentWeight();
+    if (!weight) return null;
+    return { min: Math.round(weight * 30), max: Math.round(weight * 35), goal: Math.round(weight * 33) };
   }
 
   function streak() {
@@ -196,11 +188,10 @@
     (list || state.workouts).forEach(w => {
       const dt = parseDate(w.logged_at);
       const k = dayKey(dt);
-      if (!map.has(k)) map.set(k, { key: k, date: startOfDay(dt), rows: [], sets: 0, tonnage: 0, groups: new Set() });
+      if (!map.has(k)) map.set(k, { key: k, date: startOfDay(dt), rows: [], sets: 0, groups: new Set() });
       const s = map.get(k);
       s.rows.push(w);
       s.sets += setCount(w);
-      s.tonnage += tonnage(w);
       if (w.muscle_group) s.groups.add(w.muscle_group);
     });
     return Array.from(map.values()).sort((a, b) => b.date - a.date);
@@ -219,7 +210,7 @@
     return { total: total, rows: Object.keys(acc).map(g => ({ group: g, name: GROUPS[g] || g, sets: acc[g] })).sort((a, b) => b.sets - a.sets) };
   }
 
-  function weeklyVolume(weeks) {
+  function weeklySets(weeks) {
     const n = weeks || 8;
     const out = [];
     const today = startOfDay(new Date());
@@ -228,13 +219,12 @@
       const dow = (anchor.getDay() + 6) % 7;
       const start = addDays(anchor, -dow);
       const end = addDays(start, 6);
-      out.push({ start: start, end: end, tonnage: 0, sets: 0 });
+      out.push({ start: start, end: end, sets: 0 });
     }
     state.workouts.forEach(w => {
       const dt = parseDate(w.logged_at);
       const bucket = out.find(b => dt >= b.start && dt < addDays(b.end, 1));
       if (!bucket) return;
-      bucket.tonnage += tonnage(w);
       bucket.sets += setCount(w);
     });
     return out;
@@ -590,20 +580,20 @@
     });
   }
 
-  function drawVolumeChart() {
+  function drawSetsChart() {
     if (!window.Chart) return;
     const el = document.getElementById('volume-chart');
     if (!el) return;
     const ctx0 = canvasCtx(el);
     destroyChart('volume');
     if (!ctx0) return;
-    const weeks = weeklyVolume(8);
+    const weeks = weeklySets(8);
     mountChart('volume', ctx0, {
       type: 'bar',
       data: {
         labels: weeks.map(w => fmtShort(w.start)),
         datasets: [{
-          data: weeks.map(w => round(w.tonnage, 0)),
+          data: weeks.map(w => w.sets),
           backgroundColor: (ctx) => {
             const chart = ctx.chart;
             const { ctx: c, chartArea } = chart;
@@ -631,7 +621,7 @@
               padding: 8,
               color: '#5f6d82',
               maxTicksLimit: 4,
-              callback: (v) => v >= 1000 ? nf1.format(v / 1000) + ' т' : v
+              precision: 0
             }
           }
         },
@@ -642,7 +632,7 @@
                 const w = weeks[items[0].dataIndex];
                 return fmtShort(w.start) + ' — ' + fmtShort(w.end);
               },
-              label: (item) => ' ' + nf.format(item.parsed.y) + ' кг · ' + nf.format(weeks[item.dataIndex].sets) + ' подходов'
+              label: (item) => ' ' + nf.format(item.parsed.y) + ' подходов'
             }
           }
         }
@@ -686,28 +676,23 @@
     $('#st-week').innerHTML = weekCount() + ' <small>/ 7</small>';
     $('#st-streak').innerHTML = streak() + ' <small>дн</small>';
 
-    const kcal = goalKcal(p);
-    $('#st-kcal').innerHTML = kcal ? nf.format(kcal) : '—';
-    $('#st-kcal-note').textContent = p.goal === 'mass' ? 'профицит на набор' : p.goal === 'cut' ? 'дефицит на похудение' : 'поддержание веса';
+    // Белки за сегодня
+    const protein = proteinToday();
+    const pt = proteinTarget(w);
+    $('#st-protein').innerHTML = Math.round(protein) + ' <small>г</small>';
+    $('#st-protein-note').textContent = pt ? 'цель ' + pt.goal + ' г' : 'укажи вес в профиле';
 
     // Сегодня
     const sets = today ? today.sets : 0;
-    const ton = today ? today.tonnage : 0;
     $('#today-sets').textContent = sets;
-    $('#today-title').textContent = sets ? 'Тренировка идёт' : 'Тренировки пока нет';
+    $('#today-title').textContent = sets ? 'Тренировка идёт' : 'Тренировок пока нет';
     $('#today-sub').textContent = sets
-      ? nf.format(sets) + ' подходов · ' + nf.format(round(ton, 0)) + ' кг тоннажа'
-      : 'Запиши первый подход — начнём считать объём';
+      ? nf.format(sets) + ' подходов за сегодня'
+      : 'Запиши первый подход — здесь появятся итоги дня';
     $('#today-date').textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
 
-    // Чеклист утреннего спортпита
-    const todayKeyStr = dayKey(new Date());
-    const takenCr = store.get('supp_cr_' + todayKeyStr) === '1';
-    const takenPr = store.get('supp_pr_' + todayKeyStr) === '1';
-    const btnCr = $('#chk-creatine');
-    const btnPr = $('#chk-protein');
-    if (btnCr) btnCr.classList.toggle('active', takenCr);
-    if (btnPr) btnPr.classList.toggle('active', takenPr);
+    // Чеклист спортпита (общий для «Обзора» и «Питания»)
+    renderSupps();
 
     // Баланс мышц
     const maxSets = balance.rows.reduce((m, r) => Math.max(m, r.sets), 0);
@@ -734,7 +719,7 @@
         : '<div class="empty"><svg><use href="#i-trend-up"/></svg><b>Мало данных</b>Добавь два замера веса — появится динамика</div>';
     }
     if (hasWeight) drawWeightChart('home-chart', 'home', state.range.home);
-    drawVolumeChart();
+    drawSetsChart();
 
     // Последние тренировки
     const recent = sessionsAll.slice(0, 3);
@@ -782,13 +767,18 @@
      10. Рендер: тренировки
      ============================================================ */
   function sessionHtml(s) {
+    const isToday = sameDay(s.date, new Date());
+    const del = isToday
+      ? '<button class="day-del" type="button" data-del-day="' + esc(s.key) + '" title="Удалить все подходы за сегодня">' +
+          '<svg><use href="#i-trash"/></svg>Удалить</button>'
+      : '';
     return '<div class="session">' +
       '<div class="session-head">' +
         '<div>' +
           '<div class="session-date">' + esc(fmtDay(s.date)) + '</div>' +
-          '<div class="session-meta">' + s.rows.length + ' упражн. · ' + s.sets + ' подх · ' + nf.format(round(s.tonnage, 0)) + ' кг</div>' +
+          '<div class="session-meta">' + s.rows.length + ' упражн. · ' + s.sets + ' подх</div>' +
         '</div>' +
-        '<span class="row-badge">' + (s.groups.size || 1) + '</span>' +
+        '<div class="session-tools">' + del + '<span class="row-badge">' + (s.groups.size || 1) + '</span></div>' +
       '</div>' +
       s.rows.map(rowHtml).join('') +
     '</div>';
@@ -803,8 +793,11 @@
     if (weight) parts.push(nf1.format(weight) + ' кг');
     if (reps) parts.push(reps + ' повт');
     if (sets) parts.push(sets + ' подх');
-    const load = weight && reps ? (weight * reps * (sets || 1)) : 0;
     const pr = w._pr ? '<span class="tag pr">PR</span>' : '';
+    const canDel = w.id && sameDay(parseDate(w.logged_at), new Date());
+    const del = canDel
+      ? '<button class="row-del" type="button" data-del-row="' + esc(String(w.id)) + '" title="Удалить запись"><svg><use href="#i-trash"/></svg></button>'
+      : '';
     return '<div class="set-row" data-group="' + esc(g || 'other') + '" data-repeat-ex="' + esc(w.exercise || '') + '" data-repeat-group="' + esc(g || 'chest') + '" data-repeat-w="' + (weight || '') + '" data-repeat-r="' + (reps || '') + '" data-repeat-s="' + (sets || 3) + '" style="cursor:pointer" title="Нажми, чтобы скопировать в форму">' +
       '<div>' +
         '<div class="set-name">' + esc(w.exercise || 'Без названия') + '</div>' +
@@ -814,16 +807,20 @@
           pr +
         '</div>' +
       '</div>' +
-      '<div class="set-load">' + (load ? nf.format(round(load, 0)) : '—') + '<small>тоннаж, кг</small></div>' +
+      del +
     '</div>';
   }
 
   function renderWorkouts() {
     const since = startOfDay(addDays(new Date(), -29));
     const recent = state.workouts.filter(w => parseDate(w.logged_at) >= since);
-    $('#ws-count').textContent = recent.length;
-    $('#ws-sets').textContent = recent.reduce((s, w) => s + setCount(w), 0);
-    $('#ws-tonnage').textContent = nf.format(round(recent.reduce((s, w) => s + tonnage(w), 0), 0));
+    if ($('#ws-count')) $('#ws-count').textContent = recent.length;
+    if ($('#ws-sets')) $('#ws-sets').textContent = recent.reduce((s, w) => s + setCount(w), 0);
+
+    const todayRows = state.workouts.filter(w => sameDay(parseDate(w.logged_at), new Date()));
+    if ($('#ws-today-sets')) $('#ws-today-sets').textContent = todayRows.reduce((s, w) => s + setCount(w), 0);
+    const clearBtn = $('#wo-clear-today');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !todayRows.length);
 
     let list = state.workouts.filter(w => !state.filter || w.muscle_group === state.filter);
     if (state.query) {
@@ -832,6 +829,7 @@
     }
 
     const container = $('#workout-list');
+    if (!container) return;
     if (!list.length) {
       container.innerHTML = '<div class="empty"><svg><use href="#i-dumbbell"/></svg><b>Ничего не найдено</b>' +
         (state.query || state.filter ? 'Попробуй сбросить фильтр' : 'Запиши первый подход в форме слева') + '</div>';
@@ -921,22 +919,17 @@
     if (w) {
       const creatineGrams = w > 90 ? 7 : (w < 65 ? 3 : 5);
       const morningProtein = Math.round(w * 0.35);
-      $('#c-supps').innerHTML = creatineGrams + ' г <small>креатин</small> · ' + morningProtein + ' г <small>белок</small>';
+      $('#c-supps').innerHTML = creatineGrams + ' г <small>креатин</small> · ' + morningProtein + ' г <small>белка</small>';
       $('#c-supps-note').textContent = 'Утром: ' + creatineGrams + ' г креатина + 1 скуп протеина (~' + morningProtein + ' г чистого белка)';
     } else {
-      $('#c-supps').innerHTML = '5 г <small>креатин</small> · 30 г <small>белок</small>';
+      $('#c-supps').innerHTML = '5 г <small>креатин</small> · 30 г <small>белка</small>';
       $('#c-supps-note').textContent = 'Стандартная порция (укажи вес для точного расчёта)';
     }
 
     // Вода
     $('#c-water').innerHTML = w ? nf1.format(w * 0.03) + '–' + nf1.format(w * 0.035) + ' <small>л</small>' : '—';
 
-    // Калории
-    const t = tdee(p);
-    const k = goalKcal(p);
-    $('#c-tdee').innerHTML = k ? nf.format(k) + ' <small>ккал</small>' : '—';
-    $('#c-tdee-note').textContent = !t ? 'нужны вес, рост и возраст'
-      : 'BMR ≈ ' + nf.format(Math.round(t / 1.55)) + ' · норма с активностью 1,55';
+    // Вода считается в блоке выше, здесь только нормы и силовые показатели
 
     // ИМТ
     if (w && num(p.height_cm)) {
@@ -961,18 +954,6 @@
     const rw = num(rmW && rmW.value), rr = num(rmR && rmR.value);
     const rm = e1rm(rw, rr);
     $('#c-rm').innerHTML = rm ? Math.round(rm) + ' <small>кг</small>' : '—';
-
-    // БЖУ
-    if (k && w) {
-      const protein = Math.round(w * 2);
-      const fat = Math.round(w * 0.9);
-      const carbs = Math.max(0, Math.round((k - protein * 4 - fat * 9) / 4));
-      $('#c-macros').innerHTML = protein + ' / ' + fat + ' / ' + carbs + ' <small>г</small>';
-      $('#c-macros-note').textContent = 'белки / жиры / углеводы · ' + nf.format(protein * 4 + fat * 9 + carbs * 4) + ' ккал';
-    } else {
-      $('#c-macros').textContent = '—';
-      $('#c-macros-note').textContent = 'заполни профиль';
-    }
   }
 
   /* ============================================================
@@ -1003,12 +984,12 @@
   }
 
   const TITLES = {
-    home: ['Обзор', 'Прогресс, объём и баланс тренировок'],
-    workouts: ['Тренировки', 'Записывай подходы и следи за объёмом'],
-    nutrition: ['Питание', 'Калории и БЖУ за день'],
+    home: ['Обзор', 'Прогресс, тренировки и питание'],
+    workouts: ['Тренировки', 'Записывай подходы и удаляй ошибочные'],
+    nutrition: ['Питание', 'Белок, спортпит и вода'],
     weight: ['Вес и состав', 'Динамика веса, жира и мышц'],
     records: ['Рекорды', 'Личные максимумы и динамика силы'],
-    calc: ['Расчёты', 'Нормы питания и силовые показатели'],
+    calc: ['Расчёты', 'Нормы белка, воды и силовые показатели'],
     profile: ['Профиль', 'Данные, доступ и экспорт']
   };
 
@@ -1031,7 +1012,7 @@
   function renderTab(name) {
     try {
       if (name === 'home') renderHome();
-      else if (name === 'workouts') { renderPrograms(); renderWorkouts(); }
+      else if (name === 'workouts') renderWorkouts();
       else if (name === 'nutrition') renderNutrition();
       else if (name === 'weight') renderWeight();
       else if (name === 'records') renderRecords();
@@ -1062,6 +1043,7 @@
     }
 
     // Повтор упражнения по клику на строку истории
+    if (e.target.closest('[data-del-row], [data-del-day], #wo-clear-today')) return;
     const rep = e.target.closest('[data-repeat-ex]');
     if (rep) {
       const exName = rep.dataset.repeatEx;
@@ -1158,26 +1140,11 @@
     });
   }
 
-  // Чеклист утреннего спортпита
-  [['#chk-creatine', 'cr', 'Креатин'], ['#chk-protein', 'pr', 'Протеин']].forEach(([btnId, code, label]) => {
-    const btn = $(btnId);
+  // Спортпит: чеклист на «Обзоре» и «Питании»
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-supp]');
     if (!btn) return;
-    btn.addEventListener('click', () => {
-      const todayK = dayKey(new Date());
-      const k = 'supp_' + code + '_' + todayK;
-      const isTaken = store.get(k) === '1';
-      if (isTaken) {
-        store.del(k);
-        btn.classList.remove('active');
-        haptic('light');
-        toast(label + ': отметка снята');
-      } else {
-        store.set(k, '1');
-        btn.classList.add('active');
-        haptic('ok');
-        toast(label + ' принят ✓', 'ok');
-      }
-    });
+    toggleSupp(btn.dataset.supp);
   });
 
   // Добавить подход
@@ -1425,7 +1392,7 @@
     cache: 'trek_cache_v1',
     queue: 'trek_queue_v1',
     nutrition: 'trek_nutrition_v1',
-    programs: 'trek_programs_v1',
+    water: 'trek_water_v1',
     notifRead: 'trek_notif_read_v1',
     target: 'trek_target_weight',
     theme: 'trek_theme'
@@ -1516,23 +1483,23 @@
   }
 
   /* ============================================================
-     19. Питание: дневник КБЖУ
+     19. Питание: белок, спортпит и вода
      ============================================================ */
   const FOOD_LIB = [
-    { e: '🍗', n: 'Куриная грудка', m: '150 г', kcal: 248, p: 46, c: 0, f: 5 },
-    { e: '🥚', n: 'Яйца', m: '3 шт', kcal: 230, p: 19, c: 1, f: 16 },
-    { e: '🍚', n: 'Рис отварной', m: '200 г', kcal: 260, p: 5, c: 56, f: 1 },
-    { e: '🍝', n: 'Макароны', m: '200 г', kcal: 300, p: 10, c: 60, f: 2 },
-    { e: '🥣', n: 'Овсянка', m: '60 г сухих', kcal: 230, p: 8, c: 38, f: 5 },
-    { e: '🍌', n: 'Банан', m: '1 шт', kcal: 105, p: 1, c: 27, f: 0 },
-    { e: '🧀', n: 'Творог 5%', m: '200 г', kcal: 240, p: 34, c: 6, f: 9 },
-    { e: '🥛', n: 'Молоко 2,5%', m: '250 мл', kcal: 130, p: 8, c: 12, f: 6 },
-    { e: '🥩', n: 'Говядина', m: '150 г', kcal: 280, p: 40, c: 0, f: 12 },
-    { e: '🐟', n: 'Лосось', m: '150 г', kcal: 310, p: 32, c: 0, f: 20 },
-    { e: '🥑', n: 'Авокадо', m: '½ шт', kcal: 160, p: 2, c: 9, f: 15 },
-    { e: '🥜', n: 'Орехи', m: '30 г', kcal: 190, p: 6, c: 6, f: 16 },
-    { e: '🍫', n: 'Протеин-батончик', m: '60 г', kcal: 220, p: 20, c: 22, f: 8 },
-    { e: '🥤', n: 'Протеин', m: '30 г', kcal: 120, p: 24, c: 3, f: 1 }
+    { e: '🍗', n: 'Куриная грудка', m: '150 г', p: 46 },
+    { e: '🥚', n: 'Яйца', m: '3 шт', p: 19 },
+    { e: '🍚', n: 'Рис отварной', m: '200 г', p: 5 },
+    { e: '🍝', n: 'Макароны', m: '200 г', p: 10 },
+    { e: '🥣', n: 'Овсянка', m: '60 г сухих', p: 8 },
+    { e: '🍌', n: 'Банан', m: '1 шт', p: 1 },
+    { e: '🧀', n: 'Творог 5%', m: '200 г', p: 34 },
+    { e: '🥛', n: 'Молоко 2,5%', m: '250 мл', p: 8 },
+    { e: '🥩', n: 'Говядина', m: '150 г', p: 40 },
+    { e: '🐟', n: 'Лосось', m: '150 г', p: 32 },
+    { e: '🥑', n: 'Авокадо', m: '½ шт', p: 2 },
+    { e: '🥜', n: 'Орехи', m: '30 г', p: 6 },
+    { e: '🍫', n: 'Протеин-батончик', m: '60 г', p: 20 },
+    { e: '🥤', n: 'Протеин', m: '30 г', p: 24 }
   ];
 
   function nutritionAll() {
@@ -1545,12 +1512,69 @@
   }
   function nutritionTotals(items) {
     return (items || []).reduce((a, i) => {
-      a.kcal += Number(i.kcal) || 0;
       a.p += Number(i.p) || 0;
-      a.c += Number(i.c) || 0;
-      a.f += Number(i.f) || 0;
       return a;
-    }, { kcal: 0, p: 0, c: 0, f: 0 });
+    }, { p: 0 });
+  }
+
+  function proteinToday() {
+    return nutritionTotals(nutritionDay(dayKey(new Date()))).p;
+  }
+
+  // ---- Вода ----
+  function waterAll() {
+    const v = readJSON(LS.water, {});
+    return v && typeof v === 'object' ? v : {};
+  }
+  function waterToday() {
+    return Number(waterAll()[dayKey(new Date())]) || 0;
+  }
+  function waterAdd(ml) {
+    const all = waterAll();
+    const k = dayKey(new Date());
+    all[k] = Math.max(0, Math.min(15000, (Number(all[k]) || 0) + ml));
+    writeJSON(LS.water, all);
+    renderNutrition();
+  }
+  function waterReset() {
+    const all = waterAll();
+    all[dayKey(new Date())] = 0;
+    writeJSON(LS.water, all);
+    renderNutrition();
+  }
+
+  // ---- Спортпит ----
+  function suppTaken(code) {
+    return store.get('supp_' + code + '_' + dayKey(new Date())) === '1';
+  }
+  function formatSupps() {
+    const w = currentWeight();
+    if (!w) return 'Укажи вес в профиле — посчитаем порции.';
+    const crG = w > 90 ? 7 : (w < 65 ? 3 : 5);
+    const prG = Math.round(w * 0.35);
+    return 'Твоя норма: ' + crG + ' г креатина + ' + prG + ' г белка из протеина.';
+  }
+  function renderSupps() {
+    const cr = suppTaken('cr');
+    const pr = suppTaken('pr');
+    $$('[data-supp]').forEach(btn => btn.classList.toggle('active', btn.dataset.supp === 'cr' ? cr : pr));
+    const kpi = $('#nut-supps');
+    if (kpi) kpi.innerHTML = (cr ? 1 : 0) + (pr ? 1 : 0) + '<small> / 2</small>';
+    const hint = $('#supp-hint');
+    if (hint) hint.textContent = formatSupps();
+  }
+  function toggleSupp(code) {
+    const key = 'supp_' + code + '_' + dayKey(new Date());
+    if (store.get(key) === '1') {
+      store.del(key);
+      haptic('light');
+      toast(code === 'cr' ? 'Креатин: отметка снята' : 'Протеин: отметка снята');
+    } else {
+      store.set(key, '1');
+      haptic('ok');
+      toast(code === 'cr' ? 'Креатин принят ✓' : 'Протеин принят ✓', 'ok');
+    }
+    renderSupps();
   }
   function nutritionAdd(item) {
     const all = nutritionAll();
@@ -1560,71 +1584,53 @@
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       e: item.e || '🍽️',
       n: item.n || 'Продукт',
-      kcal: Math.round(Number(item.kcal) || 0),
-      p: round(Number(item.p) || 0, 1),
-      c: round(Number(item.c) || 0, 1),
-      f: round(Number(item.f) || 0, 1)
+      p: round(Number(item.p) || 0, 1)
     });
     all[key] = list;
     writeJSON(LS.nutrition, all);
-  }
-
-  function drawMacros(total) {
-    const el = document.getElementById('macros-chart');
-    if (!el) return;
-    destroyChart('macros');
-    const ctx = canvasCtx(el);
-    if (!ctx || !window.Chart) return;
-    const vals = [Math.round(total.p * 4), Math.round(total.c * 4), Math.round(total.f * 9)];
-    const empty = vals.every(v => v <= 0);
-    mountChart('macros', ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Белки', 'Углеводы', 'Жиры'],
-        datasets: [{
-          data: empty ? [1, 1, 1] : vals,
-          backgroundColor: empty ? ['rgba(148,163,184,.16)', 'rgba(148,163,184,.12)', 'rgba(148,163,184,.08)'] : ['#2dd4bf', '#6366f1', '#fbbf24'],
-          borderWidth: 0,
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '68%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            enabled: !empty,
-            callbacks: { label: (it) => ' ' + nf.format(Math.round(it.parsed)) + ' ккал' }
-          }
-        }
-      }
-    });
   }
 
   function renderNutrition() {
     const key = dayKey(new Date());
     const items = nutritionDay(key);
     const t = nutritionTotals(items);
-    const goal = goalKcal(state.profile);
+    const w = currentWeight();
+    const pt = proteinTarget(w);
+    const wt = waterTarget(w);
+    const water = waterToday();
 
     const dateEl = $('#nut-date');
     if (dateEl) dateEl.textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
 
-    if ($('#nut-kcal')) $('#nut-kcal').innerHTML = nf.format(Math.round(t.kcal)) + (goal ? ' <small>/ ' + nf.format(goal) + '</small>' : '');
-    if ($('#nut-kcal-note')) {
-      $('#nut-kcal-note').textContent = !goal ? 'заполни профиль — посчитаем цель'
-        : (t.kcal > goal ? 'перебор ' + nf.format(Math.round(t.kcal - goal)) + ' ккал' : 'осталось ' + nf.format(Math.round(goal - t.kcal)) + ' ккал');
-    }
+    // Белок
     if ($('#nut-protein')) $('#nut-protein').innerHTML = Math.round(t.p) + ' <small>г</small>';
-    if ($('#nut-carbs')) $('#nut-carbs').innerHTML = Math.round(t.c) + ' <small>г</small>';
-    if ($('#nut-fat')) $('#nut-fat').innerHTML = Math.round(t.f) + ' <small>г</small>';
+    if ($('#nut-protein-note')) $('#nut-protein-note').textContent = pt ? 'цель ' + pt.goal + ' г' : 'укажи вес в профиле';
+    const pPct = pt ? Math.min(100, Math.round(t.p / pt.goal * 100)) : 0;
+    if ($('#nut-protein-bar')) $('#nut-protein-bar').style.width = pPct + '%';
+    if ($('#nut-protein-pct')) $('#nut-protein-pct').textContent = pPct + '%';
     if ($('#nut-goal-note')) {
-      $('#nut-goal-note').textContent = goal
-        ? 'цель ' + nf.format(goal) + ' ккал · съедено ' + nf.format(Math.round(t.kcal))
-        : 'цель появится после заполнения профиля';
+      $('#nut-goal-note').textContent = pt
+        ? 'Цель ' + pt.goal + ' г · норма ' + pt.min + '–' + pt.max + ' г'
+        : 'Заполни вес в профиле';
     }
+    if ($('#nut-protein-left')) {
+      $('#nut-protein-left').textContent = !pt ? '—'
+        : (t.p >= pt.goal ? 'Норма белка набрана' : 'Осталось ' + Math.max(0, Math.round(pt.goal - t.p)) + ' г');
+    }
+
+    // Вода
+    if ($('#nut-water')) $('#nut-water').innerHTML = nf.format(Math.round(water)) + ' <small>мл</small>';
+    if ($('#nut-water-note')) $('#nut-water-note').textContent = wt ? 'из ' + nf.format(wt.goal) + ' мл' : 'мл';
+    const wPct = wt ? Math.min(100, Math.round(water / wt.goal * 100)) : 0;
+    if ($('#nut-water-bar')) $('#nut-water-bar').style.width = wPct + '%';
+    if ($('#water-goal-note')) {
+      $('#water-goal-note').textContent = wt
+        ? 'Норма ' + nf.format(wt.min) + '–' + nf.format(wt.max) + ' мл · выпито ' + nf.format(Math.round(water))
+        : 'Заполни вес в профиле';
+    }
+
+    // Спортпит
+    renderSupps();
 
     const grid = $('#food-grid');
     if (grid) {
@@ -1632,7 +1638,7 @@
         '<button class="food-card" type="button" data-food="' + i + '">' +
           '<span class="food-emoji">' + f.e + '</span>' +
           '<span class="food-info"><span class="food-name">' + esc(f.n) + '</span>' +
-          '<span class="food-meta">' + esc(f.m) + ' · ' + f.kcal + ' ккал</span></span>' +
+          '<span class="food-meta">' + esc(f.m) + ' · ' + f.p + ' г белка</span></span>' +
         '</button>'
       ).join('');
     }
@@ -1646,23 +1652,18 @@
           '<div class="nutrition-log-item">' +
             '<span class="food-emoji">' + esc(it.e) + '</span>' +
             '<span class="log-name">' + esc(it.n) + '</span>' +
-            '<span class="log-kcal">' + it.kcal + ' ккал · Б' + it.p + ' Ж' + it.f + ' У' + it.c + '</span>' +
+            '<span class="log-macro">' + round(Number(it.p) || 0, 1) + ' г белка</span>' +
             '<button class="row-action" type="button" data-nut-del="' + esc(it.id) + '" aria-label="Удалить"><svg style="width:14px;height:14px"><use href="#i-close"/></svg></button>' +
           '</div>'
         );
         log.innerHTML = parts.join('') +
           '<div class="nutrition-summary" style="margin-top:8px">' +
-            '<div class="ns-item"><span class="ns-label">Ккал</span><span class="ns-value">' + Math.round(t.kcal) + '</span></div>' +
-            '<div class="ns-item"><span class="ns-label">Белки</span><span class="ns-value">' + Math.round(t.p) + '<small> г</small></span></div>' +
-            '<div class="ns-item"><span class="ns-label">Углеводы</span><span class="ns-value">' + Math.round(t.c) + '<small> г</small></span></div>' +
-            '<div class="ns-item"><span class="ns-label">Жиры</span><span class="ns-value">' + Math.round(t.f) + '<small> г</small></span></div>' +
+            '<div class="ns-item"><span class="ns-label">Белки за день</span><span class="ns-value">' + Math.round(t.p) + '<small> г</small></span></div>' +
+            (pt ? '<div class="ns-item"><span class="ns-label">Цель</span><span class="ns-value">' + pt.goal + '<small> г</small></span></div>' : '') +
           '</div>';
       }
     }
-
-    drawMacros(t);
   }
-
   /* ============================================================
      20. Рекорды
      ============================================================ */
@@ -1805,102 +1806,10 @@
   /* ============================================================
      21. Программы тренировок
      ============================================================ */
-  const DEFAULT_PROGRAMS = [
-    {
-      id: 'chest', emoji: '🏋️', name: 'Грудь и трицепс',
-      items: [
-        { exercise: 'Жим лёжа', muscle_group: 'chest', weight_kg: 60, reps: 8, sets: 3 },
-        { exercise: 'Жим на наклонной скамье', muscle_group: 'chest', weight_kg: 40, reps: 10, sets: 3 },
-        { exercise: 'Разводка гантелей', muscle_group: 'chest', weight_kg: 14, reps: 12, sets: 3 },
-        { exercise: 'Французский жим', muscle_group: 'triceps', weight_kg: 20, reps: 10, sets: 3 }
-      ]
-    },
-    {
-      id: 'back', emoji: '🪝', name: 'Спина и бицепс',
-      items: [
-        { exercise: 'Подтягивания', muscle_group: 'back', weight_kg: 0, reps: 8, sets: 3 },
-        { exercise: 'Тяга верхнего блока', muscle_group: 'back', weight_kg: 50, reps: 10, sets: 3 },
-        { exercise: 'Тяга штанги в наклоне', muscle_group: 'back', weight_kg: 50, reps: 10, sets: 3 },
-        { exercise: 'Подъём штанги на бицепс', muscle_group: 'biceps', weight_kg: 25, reps: 10, sets: 3 }
-      ]
-    },
-    {
-      id: 'legs', emoji: '🦵', name: 'День ног',
-      items: [
-        { exercise: 'Приседания со штангой', muscle_group: 'legs', weight_kg: 70, reps: 8, sets: 4 },
-        { exercise: 'Жим ногами', muscle_group: 'legs', weight_kg: 120, reps: 10, sets: 3 },
-        { exercise: 'Румынская тяга', muscle_group: 'legs', weight_kg: 60, reps: 10, sets: 3 },
-        { exercise: 'Подъём на носки', muscle_group: 'legs', weight_kg: 40, reps: 15, sets: 3 }
-      ]
-    },
-    {
-      id: 'shoulders', emoji: '💪', name: 'Плечи и пресс',
-      items: [
-        { exercise: 'Жим штанги стоя', muscle_group: 'shoulders', weight_kg: 35, reps: 8, sets: 3 },
-        { exercise: 'Махи гантелями в стороны', muscle_group: 'shoulders', weight_kg: 8, reps: 12, sets: 3 },
-        { exercise: 'Разведение в наклоне', muscle_group: 'shoulders', weight_kg: 8, reps: 12, sets: 3 },
-        { exercise: 'Планка', muscle_group: 'abs', weight_kg: 0, reps: 60, sets: 3 }
-      ]
-    }
-  ];
-
-  function customPrograms() {
-    const v = readJSON(LS.programs, []);
-    return Array.isArray(v) ? v : [];
-  }
-  function programsAll() {
-    return DEFAULT_PROGRAMS.concat(customPrograms());
-  }
-  function programVolume(p) {
-    return (p.items || []).reduce((s, i) => s + (Number(i.sets) || 0), 0);
-  }
-
-  function renderPrograms() {
-    const box = $('#programs-list');
-    if (!box) return;
-    box.innerHTML = programsAll().map((p, i) =>
-      '<div class="program-row" data-program-row="' + i + '">' +
-        '<span class="p-emoji">' + (p.emoji || '📋') + '</span>' +
-        '<span class="p-body"><span class="p-name">' + esc(p.name) + '</span>' +
-        '<span class="p-meta">' + (p.items || []).length + ' упражн. · ' + programVolume(p) + ' подходов</span></span>' +
-        '<button class="btn sm primary" type="button" data-program-start="' + i + '">Старт</button>' +
-        '<button class="btn sm ghost" type="button" data-program-add="' + i + '" title="Добавить все подходы в дневник">+</button>' +
-      '</div>'
-    ).join('');
-  }
-
-  async function addProgramToLog(p) {
-    for (const it of (p.items || [])) {
-      const payload = { exercise: it.exercise, muscle_group: it.muscle_group, weight_kg: it.weight_kg, reps: it.reps, sets: it.sets };
-      state.workouts.unshift({
-        exercise: it.exercise, muscle_group: it.muscle_group,
-        weight_kg: it.weight_kg, reps: it.reps, sets: it.sets,
-        logged_at: localISO(new Date()), id: 'local-' + Date.now() + Math.random().toString(36).slice(2, 5)
-      });
-      try { await sendWrite('add_workout', payload); } catch (e) { toast(e.message, 'err'); }
-    }
-    markPRs();
-    saveCache();
-    renderWorkouts();
-    renderHome();
-    toast('Программа «' + p.name + '» добавлена', 'ok');
-  }
-
-  function saveLastSessionAsProgram() {
-    const all = sessions();
-    if (!all.length) { toast('Пока нет тренировок для шаблона', 'err'); return; }
-    const s = all[0];
-    const items = s.rows.map(r => ({
-      exercise: r.exercise, muscle_group: r.muscle_group,
-      weight_kg: num(r.weight_kg) || 0, reps: num(r.reps) || 0, sets: num(r.sets) || 1
-    }));
-    const name = 'Моя тренировка ' + (customPrograms().length + 1);
-    const list = customPrograms();
-    list.push({ id: 'custom-' + Date.now(), emoji: '⭐', name: name, items: items });
-    writeJSON(LS.programs, list);
-    renderPrograms();
-    toast('Шаблон сохранён: ' + name, 'ok');
-  }
+  /* ============================================================
+     21. Программы тренировок
+     Удалены: остались только записи подходов и история.
+     ============================================================ */
 
   /* ============================================================
      22. Шторка и режим активной тренировки
@@ -1939,11 +1848,9 @@
     '</div>';
 
     if (summary) {
-      const tonnageSum = items.reduce((s, i) => s + (Number(i.weight_kg) || 0) * (Number(i.reps) || 0) * (Number(i.done) || 0), 0);
       return head +
-        '<div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">' +
+        '<div class="kpis" style="grid-template-columns:repeat(2,1fr);margin-bottom:12px">' +
           '<div class="kpi"><div class="kpi-label">Подходы</div><div class="kpi-value num">' + pr.done + '</div></div>' +
-          '<div class="kpi"><div class="kpi-label">Тоннаж</div><div class="kpi-value num">' + nf.format(Math.round(tonnageSum)) + '</div><div class="kpi-foot">кг</div></div>' +
           '<div class="kpi"><div class="kpi-label">Время</div><div class="kpi-value num">' + restLabel(Math.floor((Date.now() - activeWorkout.startedAt) / 1000)) + '</div></div>' +
         '</div>' +
         items.map(i => '<div class="wo-item ' + (i.done >= i.sets ? 'done' : '') + '">' +
@@ -2029,8 +1936,7 @@
     if (!pr.done) { closeSheet(); activeWorkout = null; return; }
     openSheet(activeSheetHtml(true));
     haptic('ok');
-    const tonnageSum = activeWorkout.items.reduce((s, i) => s + (Number(i.weight_kg) || 0) * (Number(i.reps) || 0) * (Number(i.done) || 0), 0);
-    toast('Тренировка: ' + pr.done + ' подходов · ' + nf.format(Math.round(tonnageSum)) + ' кг', 'ok');
+    toast('Тренировка: ' + pr.done + ' подходов', 'ok');
     saveCache();
     renderHome();
   }
@@ -2151,7 +2057,7 @@
 
   function exportCSV() {
     try {
-      const rows = [['Дата', 'Упражнение', 'Группа мышц', 'Вес (кг)', 'Повторы', 'Подходы', 'Тоннаж (кг)']];
+      const rows = [['Дата', 'Упражнение', 'Группа мышц', 'Вес (кг)', 'Повторы', 'Подходы']];
       state.workouts.slice().sort((a, b) => parseDate(a.logged_at) - parseDate(b.logged_at)).forEach(w => {
         rows.push([
           String(w.logged_at || '').slice(0, 10),
@@ -2159,8 +2065,7 @@
           GROUPS[w.muscle_group] || w.muscle_group || '',
           num(w.weight_kg) || 0,
           num(w.reps) || 0,
-          num(w.sets) || 1,
-          Math.round(tonnage(w))
+          num(w.sets) || 1
         ]);
       });
       const csv = '\uFEFF' + rows.map(r => r.map(csvCell).join(';')).join('\r\n');
@@ -2231,11 +2136,11 @@
     nutForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const name = $('#n-name').value.trim();
-      const kcal = num($('#n-kcal').value) || 0;
+      const protein = num($('#n-p').value) || 0;
       if (!name) { toast('Укажи название продукта', 'err'); return; }
-      if (!kcal) { toast('Укажи калорийность', 'err'); return; }
-      nutritionAdd({ e: '🍽️', n: name, kcal: kcal, p: num($('#n-p').value) || 0, c: num($('#n-c').value) || 0, f: num($('#n-f').value) || 0 });
-      ['#n-name', '#n-kcal', '#n-p', '#n-c', '#n-f'].forEach(s => { const el = $(s); if (el) el.value = ''; });
+      if (!protein) { toast('Укажи белок в граммах', 'err'); return; }
+      nutritionAdd({ e: '🍽️', n: name, p: protein });
+      ['#n-name', '#n-p'].forEach(s => { const el = $(s); if (el) el.value = ''; });
       renderNutrition();
       toast('Добавлено: ' + name, 'ok');
     });
@@ -2260,29 +2165,89 @@
     });
   }
 
-  const programsEl = $('#programs-list');
-  if (programsEl) {
-    programsEl.addEventListener('click', (e) => {
-      const start = e.target.closest('[data-program-start]');
-      const add = e.target.closest('[data-program-add]');
-      if (start) {
-        const p = programsAll()[Number(start.dataset.programStart)];
-        if (p) startWorkout(p.items, p.name);
-        return;
-      }
-      if (add) {
-        const p = programsAll()[Number(add.dataset.programAdd)];
-        if (!p) return;
-        addProgramToLog(p).catch(err => toast(err.message, 'err'));
-      }
-    });
-  }
-
   const startWorkoutBtn = $('#start-workout-btn');
   if (startWorkoutBtn) startWorkoutBtn.addEventListener('click', () => startFreeWorkout());
 
-  const saveProgramBtn = $('#save-program-btn');
-  if (saveProgramBtn) saveProgramBtn.addEventListener('click', () => saveLastSessionAsProgram());
+  // Удаление записей за сегодня
+  function askConfirm(text) {
+    return new Promise(resolve => {
+      const canUseTg = tg && typeof tg.showConfirm === 'function' &&
+        (typeof tg.isVersionAtLeast !== 'function' || tg.isVersionAtLeast('6.2'));
+      if (canUseTg) {
+        try { tg.showConfirm(text, ok => resolve(!!ok)); return; } catch (_) {}
+      }
+      try { resolve(window.confirm(text)); } catch (_) { resolve(true); }
+    });
+  }
+
+  async function deleteWorkoutRows(rows, label, mode) {
+    const list = (rows || []).filter(Boolean);
+    if (!list.length) return;
+    const ok = await askConfirm('Удалить ' + label + '? Это действие нельзя отменить.');
+    if (!ok) return;
+
+    const ids = list.map(r => r.id).filter(id => id && !String(id).startsWith('local-'));
+    const localIds = list.map(r => r.id).filter(id => id && String(id).startsWith('local-'));
+    const byDay = mode === 'day';
+
+    if (byDay || ids.length) {
+      try {
+        await api('delete_workout', byDay ? { day: dayKey(new Date()) } : { ids: ids });
+      } catch (err) {
+        const msg = String((err && err.message) || '');
+        toast(/non-2xx|unknown|invalid|not found/i.test(msg)
+          ? 'Сервер не умеет удалять: добавь действие delete_workout (см. supabase/README.md)'
+          : 'Не удалось удалить: ' + msg, 'err');
+        return;
+      }
+    }
+
+    if (byDay) {
+      const today = dayKey(new Date());
+      state.workouts = state.workouts.filter(w => dayKey(parseDate(w.logged_at)) !== today);
+    } else {
+      const drop = new Set(ids.concat(localIds).map(String));
+      state.workouts = state.workouts.filter(w => !drop.has(String(w.id)));
+    }
+
+    markPRs();
+    saveCache();
+    renderWorkouts();
+    renderHome();
+    haptic('ok');
+    toast('Удалено: ' + label, 'ok');
+  }
+
+  document.addEventListener('click', (e) => {
+    const rowBtn = e.target.closest('[data-del-row]');
+    if (rowBtn) {
+      e.preventDefault();
+      const row = state.workouts.find(w => String(w.id) === String(rowBtn.dataset.delRow));
+      if (row) deleteWorkoutRows([row], 'запись «' + (row.exercise || 'без названия') + '»');
+      return;
+    }
+    const dayBtn = e.target.closest('[data-del-day]');
+    if (dayBtn) {
+      e.preventDefault();
+      const key = dayBtn.dataset.delDay;
+      const rows = state.workouts.filter(w => dayKey(parseDate(w.logged_at)) === key);
+      if (rows.length) deleteWorkoutRows(rows, 'все подходы за сегодня (' + rows.length + ' записей)', 'day');
+      return;
+    }
+    const clearBtn = e.target.closest('#wo-clear-today');
+    if (clearBtn) {
+      e.preventDefault();
+      const rows = state.workouts.filter(w => sameDay(parseDate(w.logged_at), new Date()));
+      if (rows.length) deleteWorkoutRows(rows, 'все подходы за сегодня (' + rows.length + ' записей)', 'day');
+    }
+  });
+
+  // Вода
+  document.addEventListener('click', (e) => {
+    const add = e.target.closest('[data-water]');
+    if (add) { waterAdd(Number(add.dataset.water) || 0); haptic('light'); return; }
+    if (e.target.closest('#water-reset')) { waterReset(); haptic('light'); toast('Вода за сегодня сброшена'); }
+  });
 
   const sheetEl = $('#sheet');
   if (sheetEl) {

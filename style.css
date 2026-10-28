@@ -1490,7 +1490,7 @@ input[type="search"]::-webkit-search-cancel-button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.nutrition-log-item .log-kcal {
+.nutrition-log-item .log-macro {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   font-size: 12px;
@@ -2088,4 +2088,121 @@ html[data-theme="energy"] .goal-mini-bar > span {
   .program-row .p-body {
     flex: 1 1 auto;
   }
+}
+
+/* ==========================================================================
+   36. Удаление записей, белок, вода и спортпит
+   ========================================================================== */
+.kpis.kpis-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.kpis.kpis-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 639px) {
+  .kpis.kpis-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.session-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-del {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid rgba(248, 113, 113, .28);
+  border-radius: 8px;
+  background: rgba(248, 113, 113, .08);
+  color: var(--bad);
+  font-size: 11px;
+  font-weight: 700;
+  transition: background .18s ease, border-color .18s ease;
+}
+.day-del:hover {
+  background: rgba(248, 113, 113, .16);
+  border-color: rgba(248, 113, 113, .45);
+}
+.day-del svg {
+  width: 13px;
+  height: 13px;
+}
+
+.row-del {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: 1px solid rgba(248, 113, 113, .22);
+  border-radius: 9px;
+  background: rgba(248, 113, 113, .07);
+  color: var(--bad);
+  transition: background .18s ease, transform .15s ease;
+}
+.row-del:hover {
+  background: rgba(248, 113, 113, .16);
+}
+.row-del:active {
+  transform: scale(.94);
+}
+.row-del svg {
+  width: 15px;
+  height: 15px;
+}
+
+.link.danger {
+  color: var(--bad);
+}
+.link.danger:hover {
+  color: #fca5a5;
+}
+
+/* Полоски прогресса: белок и вода */
+.metric-bar {
+  height: 9px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .16);
+  overflow: hidden;
+}
+.metric-bar > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), #7dd3fc);
+  transition: width .45s ease;
+}
+.metric-bar.water > span {
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+}
+.metric-legend {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+
+.water-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.supp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.supp-row .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
