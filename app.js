@@ -67,7 +67,17 @@
     const res = await withTimeout(call, 15000);
     const data = res && res.data;
     const error = res && res.error;
-    if (error) throw new Error(error.message || 'Ошибка запроса');
+    if (error) {
+      // Supabase отдаёт причину в теле ответа — показываем её, а не «non-2xx»
+      let msg = error.message || 'Ошибка запроса';
+      try {
+        if (error.context && typeof error.context.json === 'function') {
+          const parsed = await error.context.json();
+          if (parsed && parsed.error) msg = parsed.error;
+        }
+      } catch (_) {}
+      throw new Error(msg);
+    }
     if (data && data.error) throw new Error(data.error);
     return data || {};
   }
@@ -2180,6 +2190,15 @@
     });
   }
 
+  function plural(n, forms) {
+    const a = Math.abs(n) % 100;
+    const b = a % 10;
+    if (a > 10 && a < 20) return forms[2];
+    if (b > 1 && b < 5) return forms[1];
+    if (b === 1) return forms[0];
+    return forms[2];
+  }
+
   async function deleteWorkoutRows(rows, label, mode) {
     const list = (rows || []).filter(Boolean);
     if (!list.length) return;
@@ -2191,12 +2210,16 @@
     const byDay = mode === 'day';
 
     if (byDay || ids.length) {
+      const dayStart = startOfDay(new Date());
+      const dayEnd = addDays(dayStart, 1);
       try {
-        await api('delete_workout', byDay ? { day: dayKey(new Date()) } : { ids: ids });
+        await api('delete_workout', byDay
+          ? { from: dayStart.toISOString(), to: dayEnd.toISOString(), day: dayKey(new Date()) }
+          : { ids: ids });
       } catch (err) {
         const msg = String((err && err.message) || '');
-        toast(/non-2xx|unknown|invalid|not found/i.test(msg)
-          ? 'Сервер не умеет удалять: добавь действие delete_workout (см. supabase/README.md)'
+        toast(/non-2xx|unknown|invalid|not found|does not exist/i.test(msg)
+          ? 'Сервер не умеет удалять: проверь действие delete_workout в Edge Function'
           : 'Не удалось удалить: ' + msg, 'err');
         return;
       }
@@ -2231,14 +2254,14 @@
       e.preventDefault();
       const key = dayBtn.dataset.delDay;
       const rows = state.workouts.filter(w => dayKey(parseDate(w.logged_at)) === key);
-      if (rows.length) deleteWorkoutRows(rows, 'все подходы за сегодня (' + rows.length + ' записей)', 'day');
+      if (rows.length) deleteWorkoutRows(rows, 'все подходы за сегодня (' + rows.length + ' ' + plural(rows.length, ['запись', 'записи', 'записей']) + ')', 'day');
       return;
     }
     const clearBtn = e.target.closest('#wo-clear-today');
     if (clearBtn) {
       e.preventDefault();
       const rows = state.workouts.filter(w => sameDay(parseDate(w.logged_at), new Date()));
-      if (rows.length) deleteWorkoutRows(rows, 'все подходы за сегодня (' + rows.length + ' записей)', 'day');
+      if (rows.length) deleteWorkoutRows(rows, 'все подходы за сегодня (' + rows.length + ' ' + plural(rows.length, ['запись', 'записи', 'записей']) + ')', 'day');
     }
   });
 

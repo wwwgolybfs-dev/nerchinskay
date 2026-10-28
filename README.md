@@ -41,7 +41,8 @@ nerchinskay/
 │   └── profile.html     Профиль
 ├── demo.html        демо-данные для локального просмотра (только localhost)
 ├── supabase/
-│   └── README.md    что добавить в Edge Function для удаления тренировок
+│   ├── README.md    описание API функции и как передеплоить
+│   └── functions/telegram-api/index.ts   код Edge Function (версия 6)
 ├── manifest.json, sw.js, icon*.png/svg
 └── vendor/          chart.umd.min.js, supabase.js
 ```
@@ -57,8 +58,9 @@ nerchinskay/
 | `style.css` | Токены темы, карточки, KPI, списки, формы, кнопки, прогресс-бары, heatmap, тосты, панель питания, удаление, вода, спортпит. |
 | `pages/*.html` | Фрагменты вкладок: один `<section class="panel" id="panel-<имя>">` без `<html>`/`<head>`. |
 | `demo.html` | Наполняет `localStorage` демо-данными (профиль, подходы, вес, белок, вода) и открывает `index2.html#/home`. Только localhost/127.0.0.1. |
-| `supabase/README.md` | Готовый обработчик `delete_workout` для Edge Function и как его задеплоить. |
-| `manifest.json`, `sw.js` | PWA: иконки, `start_url`, офлайн-кэш `trekfit-v3`. |
+| `supabase/README.md` | Контракт Edge Function `telegram-api` и команда передеплоя. |
+| `supabase/functions/telegram-api/index.ts` | Исходник задеплоенной функции (версия 6) с действием `delete_workout`. |
+| `manifest.json`, `sw.js` | PWA: иконки, `start_url`, офлайн-кэш `trekfit-v4`. |
 | `vendor/chart.umd.min.js` | Chart.js 4.4.4. |
 | `vendor/supabase.js` | supabase-js v2 (Edge Function `telegram-api`). |
 
@@ -79,13 +81,15 @@ python -m http.server 8080     # или: npx serve .
 Кнопки удаления вызывают действие `delete_workout`:
 
 ```json
-{ "action": "delete_workout", "payload": { "day": "2026-10-28" } }
+{ "action": "delete_workout", "payload": { "from": "2026-10-28T00:00:00+10:00",
+                                           "to": "2026-10-29T00:00:00+10:00" } }
 { "action": "delete_workout", "payload": { "ids": ["<uuid>"] } }
 ```
 
-Если функция отвечает ошибкой, значит в Edge Function ещё нет этой ветки — готовый код
-и инструкция лежат в [supabase/README.md](supabase/README.md). Удаление работает только
-для сегодняшних записей: история задним числом не редактируется.
+Функция уже обновлена (версия 6) — кнопка работает без ручных шагов. Клиент отправляет границы
+дня в часовом поясе устройства, поэтому удаляется ровно «сегодня», а прошлые дни не трогаются.
+Удаление всегда ограничено текущим пользователем: чужие записи удалить нельзя.
+Подробности и команда передеплоя — в [supabase/README.md](supabase/README.md).
 
 ## Как добавить вкладку
 

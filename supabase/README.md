@@ -1,66 +1,71 @@
-# Удаление тренировок: что нужно на стороне Supabase
+# Supabase: Edge Function `telegram-api`
 
-Кнопки «Удалить» на вкладке **Тренировки** вызывают Edge Function `telegram-api`
-с действием `delete_workout`. Если в твоей функции такого действия ещё нет,
-клиент покажет ошибку «Не удалось удалить» — тогда добавь обработчик ниже.
+Функция задеплоена, версия **6** (28.10.2026). Добавлено действие `delete_workout`,
+которого раньше не было, — из-за него приложение отвечало «Сервер не умеет удалять».
 
-> Я не видел исходник функции (она живёт только в Supabase, в репозитории её нет),
-> поэтому имена таблицы и колонок взяты по аналогии с `add_workout` / `get_workouts`:
-> `workouts`, `user_id`, `logged_at`, `id`. Сверь их со своей функцией перед вставкой.
+Код функции лежит в репозитории: [`functions/telegram-api/index.ts`](functions/telegram-api/index.ts)
+(без секретов — ключи берутся из env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`TELEGRAM_BOT_TOKEN`). `verify_jwt = false`: авторизация внутри функции — подпись Telegram
+`initData` или код синхронизации.
 
-## Что присылает клиент
+## Что умеет
+
+| action | payload | Что делает |
+|---|---|---|
+| `get_profile` | — | профиль из `trek_profiles`, создаёт при первом входе |
+| `upsert_profile` | вес, рост, возраст, пол, цель | сохраняет профиль |
+| `generate_sync_code` | — | новый код вида `X7F9-A2B4` |
+| `get_workouts` | `{ muscle_group? }` | последние 200 подходов |
+| `add_workout` | упражнение, группа, вес, повторы, подходы | добавляет подход |
+| **`delete_workout`** | `{ ids: [...] }` **или** `{ from, to }` | удаляет свои записи |
+| `get_weight_log` | — | последние 100 замеров веса |
+| `add_weight` | вес, % жира, мышцы | добавляет замер |
+
+## `delete_workout` подробнее
 
 ```json
-// удалить одну запись
-{ "action": "delete_workout", "payload": { "ids": ["<uuid>"] } }
-
-// удалить все записи за сегодня
-{ "action": "delete_workout", "payload": { "day": "2026-10-28" } }
+{ "action": "delete_workout", "payload": { "from": "2026-10-28T00:00:00+10:00",
+                                           "to":   "2026-10-29T00:00:00+10:00",
+                                           "day":  "2026-10-28" } }
+{ "action": "delete_workout", "payload": { "ids": ["164c3abc-…"] } }
 ```
 
-`initData` / `syncCode` клиент добавляет сам, как и в остальных запросах.
+* `from`/`to` — границы дня в часовом поясе устройства (клиент считает их сам), удаление идёт
+  по `logged_at` в диапазоне `[from, to)`.
+* `day` — запасной вариант для старых клиентов из кэша: функция сама считает сутки по UTC+10.
+* `ids` — точечное удаление конкретных подходов.
+* Всегда добавляется `telegram_id = текущий пользователь`, поэтому чужие записи удалить нельзя
+  (проверено: попытка удалить id другого профиля возвращает `deleted: 0`, строка остаётся).
+* Ответ: `{ "ok": true, "deleted": 3 }` — число реально удалённых строк.
 
-## Фрагмент для Edge Function
+Важно: клиент показывает удаление только для **сегодняшних** записей, но функция технически
+умеет удалять по любому диапазону — история задним числом не редактируется на уровне UI.
 
-```ts
-// supabase/functions/telegram-api/index.ts
-// добавь ветку в тот же switch, где обрабатываются get_workouts / add_workout
+## Передеплой
 
-case 'delete_workout': {
-  const ids: string[] = Array.isArray(payload?.ids) ? payload.ids : [];
-  const day: string | undefined = typeof payload?.day === 'string' ? payload.day : undefined;
+Если правишь `functions/telegram-api/index.ts`:
 
-  if (!ids.length && !day) {
-    throw new Error('delete_workout: нужен ids[] или day (YYYY-MM-DD)');
-  }
+```powershell
+# 1) получить PAT: https://supabase.com/dashboard/account/tokens
+$env:SUPABASE_ACCESS_TOKEN = 'sbp_…'
 
-  // userId уже определён выше по initData / syncCode
-  let query = supabase.from('workouts').delete().eq('user_id', userId);
-
-  if (ids.length) {
-    query = query.in('id', ids);
-  } else {
-    // день считаем по локальному времени пользователя (UTC+10)
-    query = query
-      .gte('logged_at', `${day}T00:00:00+10:00`)
-      .lt('logged_at', `${day}T23:59:59.999+10:00`);
-  }
-
-  const { error } = await query;
-  if (error) throw error;
-
-  return { ok: true, deleted: ids.length || 'day' };
-}
+# 2) отправить код в проект (Management API)
+$body = Get-Content supabase/functions/telegram-api/index.ts -Raw
+$json = @{ name = 'telegram-api'; body = $body; verify_jwt = $false } | ConvertTo-Json -Compress
+Invoke-RestMethod -Method Patch `
+  -Uri 'https://api.supabase.com/v1/projects/xxauwkymufehmoprmhay/functions/telegram-api' `
+  -Headers @{ Authorization = "Bearer $env:SUPABASE_ACCESS_TOKEN" } `
+  -ContentType 'application/json; charset=utf-8' `
+  -Body ([Text.Encoding]::UTF8.GetBytes($json))
 ```
 
-## Как задеплоить
+Либо руками: Dashboard → Edge Functions → `telegram-api` → Code → вставить файл → **Deploy**.
+`verify_jwt` должен остаться выключенным.
 
-1. Supabase Dashboard → проект `xxauwkymufehmoprmhay` → **Edge Functions** → `telegram-api`.
-2. Открыть исходник, вставить ветку `case 'delete_workout'` в `switch (action)`.
-3. Deploy.
-4. В приложении: Тренировки → «Удалить сегодняшние» (или корзина в строке).
-   Должен появиться тост «Удалено: …», а запись — исчезнуть и не вернуться после перезагрузки.
+## Как проверялось
 
-Если в функции уже есть удаление под другим именем — просто поменяй
-`'delete_workout'` в `app.js` (одно место, функция `deleteWorkoutRows`) на своё название
-и приведи payload к ожидаемому формату.
+На временном профиле (`telegram_id = -777001`, код `TEST-9F3K`), данные удалены после теста:
+
+1. 3 записи «сегодня» + 1 «вчера» → `delete_workout` с `from`/`to` → `deleted: 3`, вчерашняя осталась.
+2. 2 записи → удаление по `ids` одной → `deleted: 1`, вторая на месте.
+3. Попытка удалить запись другого пользователя → `deleted: 0`, строка не тронута.

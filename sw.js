@@ -1,5 +1,5 @@
 /* Trek Fit — service worker: офлайн-кэш оболочки приложения */
-const CACHE = 'trekfit-v3';
+const CACHE = 'trekfit-v4';
 const ASSETS = [
   './',
   './index2.html',
